@@ -19,9 +19,6 @@
         </div>
         <div class="nav-right">
             <a href="{% url 'help' %}" class="nav-btn {% if active_page == 'help' %}active{% endif %}">Help</a>
-            {% if user.is_authenticated %}
-            <span class="nav-user">{{ user.username }}</span>
-            {% endif %}
         </div>
     </nav>
 
@@ -30,6 +27,7 @@
         {% block content %}{% endblock %}
     </main>
 
+    <script>const IS_AUTHENTICATED = {{ user.is_authenticated|yesno:"true,false" }};</script>
     <script src="{% static 'js/app.js' %}"></script>
 </body>
 </html>

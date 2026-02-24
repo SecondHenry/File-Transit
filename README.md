@@ -10,3 +10,6 @@ FileTransit
 │   └── wsgi.py                # WSGI 入口
 └── python/                    # Python 便携版
 ```
+**Django** : 5.2.10
+
+**Python** : 3.12.10

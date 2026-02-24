@@ -62,6 +62,14 @@
     <!-- Right Column: Auth / Profile -->
     <div class="transfer-column">
         <section class="card auth-area" id="authArea">
+            {% if messages %}
+            <div class="auth-messages">
+                {% for message in messages %}
+                <div class="auth-msg auth-msg-{{ message.tags }}">{{ message }}</div>
+                {% endfor %}
+            </div>
+            {% endif %}
+
             {% if user.is_authenticated %}
             <!-- Logged in -->
             <div id="profilePanel">
@@ -86,15 +94,6 @@
             <!-- Not logged in -->
             <div id="authForm">
                 <h2 class="card-title">Log in & Sign up</h2>
-
-                <!-- Messages -->
-                {% if messages %}
-                <div class="auth-messages">
-                    {% for message in messages %}
-                    <div class="auth-msg auth-msg-{{ message.tags }}">{{ message }}</div>
-                    {% endfor %}
-                </div>
-                {% endif %}
 
                 <div class="auth-toggle">
                     <button type="button" class="toggle-btn active" id="loginToggle">Log in</button>

@@ -30,9 +30,18 @@ function initTransferPage() {
 
     let uploadedFiles = [];
 
+    // Login check helper
+    function requireAuth() {
+        if (!IS_AUTHENTICATED) {
+            window.location.href = '/auth-required/';
+            return false;
+        }
+        return true;
+    }
+
     // Upload button click
-    uploadBtn.addEventListener('click', () => fileInput.click());
-    addMoreBtn.addEventListener('click', () => fileInput.click());
+    uploadBtn.addEventListener('click', () => { if (requireAuth()) fileInput.click(); });
+    addMoreBtn.addEventListener('click', () => { if (requireAuth()) fileInput.click(); });
 
     // File input change
     fileInput.addEventListener('change', (e) => {
@@ -53,6 +62,7 @@ function initTransferPage() {
     uploadZone.addEventListener('drop', (e) => {
         e.preventDefault();
         uploadZone.classList.remove('drag-over');
+        if (!requireAuth()) return;
         addFiles(Array.from(e.dataTransfer.files));
     });
 
@@ -114,6 +124,7 @@ function initTransferPage() {
 
     // Receive button
     receiveBtn.addEventListener('click', () => {
+        if (!requireAuth()) return;
         const code = document.getElementById('receiveCode').value.trim();
         if (code.length === 6) {
             alert('Looking up code: ' + code + '\n(Frontend demo only)');
