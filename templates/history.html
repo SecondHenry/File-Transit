@@ -1,0 +1,77 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="history-layout">
+    <!-- Left Column: Function Area -->
+    <div class="history-sidebar">
+        <section class="card">
+            <h2 class="card-title">Functions</h2>
+            <div class="filter-group">
+                <label class="filter-label">Filter</label>
+                <div class="filter-toggle">
+                    <button class="toggle-btn active" id="filterAll">All</button>
+                    <button class="toggle-btn" id="filterSent">Sent</button>
+                    <button class="toggle-btn" id="filterReceived">Received</button>
+                </div>
+            </div>
+            <label class="filter-label">Actions</label>
+            <div class="action-buttons">
+                <button class="btn btn-outline" id="resendBtn" disabled>Resend</button>
+                <button class="btn btn-outline" id="renameBtn" disabled>Rename</button>
+                <button class="btn btn-outline" id="downloadBtn" disabled>Download</button>
+                <button class="btn btn-danger btn-full" id="deleteBtn" disabled>Delete</button>
+            </div>
+        </section>
+    </div>
+
+    <!-- Right Column: File Explorer -->
+    <div class="history-main">
+        <section class="card">
+            <h2 class="card-title">File Explorer</h2>
+            <div class="file-explorer" id="fileExplorer">
+                <table class="file-table">
+                    <thead>
+                        <tr>
+                            <th><input type="checkbox" id="selectAll"></th>
+                            <th>Name</th>
+                            <th>Size</th>
+                            <th>Date</th>
+                            <th>Type</th>
+                        </tr>
+                    </thead>
+                    <tbody id="fileTableBody">
+                        <tr class="file-row" data-type="sent">
+                            <td><input type="checkbox" class="file-check"></td>
+                            <td class="file-name">Project_Report.pdf</td>
+                            <td>2.4 MB</td>
+                            <td>2026-02-23</td>
+                            <td><span class="badge badge-sent">Sent</span></td>
+                        </tr>
+                        <tr class="file-row" data-type="received">
+                            <td><input type="checkbox" class="file-check"></td>
+                            <td class="file-name">Photo_Album.zip</td>
+                            <td>45.1 MB</td>
+                            <td>2026-02-22</td>
+                            <td><span class="badge badge-received">Received</span></td>
+                        </tr>
+                        <tr class="file-row" data-type="sent">
+                            <td><input type="checkbox" class="file-check"></td>
+                            <td class="file-name">Meeting_Notes.docx</td>
+                            <td>156 KB</td>
+                            <td>2026-02-21</td>
+                            <td><span class="badge badge-sent">Sent</span></td>
+                        </tr>
+                        <tr class="file-row" data-type="received">
+                            <td><input type="checkbox" class="file-check"></td>
+                            <td class="file-name">Design_Assets.zip</td>
+                            <td>128 MB</td>
+                            <td>2026-02-20</td>
+                            <td><span class="badge badge-received">Received</span></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </div>
+</div>
+{% endblock %}
