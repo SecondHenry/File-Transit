@@ -20,11 +20,9 @@ from django.urls import path, include
 from . import views
 
 urlpatterns = [
-    path('admin/', admin.site.urls),
-    path('', views.transfer, name='transfer'),
-    path('history/', views.history, name='history'),
-    path('help/', views.help_page, name='help'),
-    path('auth-required/', views.auth_required, name='auth_required'),
-    path('api/users/', include('users.urls')),
-    path('api/manager/', include('manager.urls')),
+
+    path('admin/', admin.site.urls), # Global background control
+    path('users/', include('users.urls')),  #User related API
+    path('', include("manager.urls")),  # for page management
+
 ]

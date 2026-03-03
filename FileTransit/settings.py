@@ -125,7 +125,8 @@ STATICFILES_DIRS = [BASE_DIR / 'static']
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-# 用户上传的文件存放的物理路径
+# The physical path where files uploaded by users are stored
 MEDIA_URL = '/files/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'files')
 
+#LOGIN_URL = "/users/login/" # actual login route
