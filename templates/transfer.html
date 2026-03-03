@@ -1,0 +1,130 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="transfer-layout">
+    <!-- Left Column: Send & Receive -->
+    <div class="transfer-column">
+        <!-- Send Area -->
+        <section class="card send-area" id="sendArea">
+            <h2 class="card-title">Send</h2>
+
+            <!-- State 1: Initial - Upload prompt -->
+            <div class="send-state" id="sendInitial">
+                <div class="upload-zone" id="uploadZone">
+                    <input type="file" id="fileInput" multiple hidden>
+                    <button class="upload-btn" id="uploadBtn">
+                        <span class="upload-icon">+</span>
+                        <span>Click or drag files here</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- State 2: Files uploaded -->
+            <div class="send-state hidden" id="sendUploaded">
+                <button class="btn btn-outline btn-sm" id="addMoreBtn">+ Add more files</button>
+                <div class="file-list" id="fileList"></div>
+                <div class="send-actions">
+                    <button class="btn btn-outline" id="qrBtn">QR Code</button>
+                    <button class="btn btn-outline" id="linkBtn">Link</button>
+                </div>
+                <button class="btn btn-primary btn-full" id="sendBtn">Send</button>
+            </div>
+
+            <!-- State 3: File transferred -->
+            <div class="send-state hidden" id="sendTransferred">
+                <div class="transfer-info-bar">
+                    <button class="btn btn-outline btn-sm" id="backBtn">&larr; Back</button>
+                    <span class="time-remaining" id="timeRemaining">Expires in 10:00</span>
+                </div>
+                <div class="share-code-display">
+                    <span class="share-label">Share Code</span>
+                    <span class="share-code" id="shareCode">------</span>
+                </div>
+                <div class="share-visual" id="shareVisual">
+                    <div class="qr-placeholder" id="qrPlaceholder">
+                        <div class="qr-fake"></div>
+                        <p>Scan to download</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Receive Area -->
+        <section class="card receive-area">
+            <h2 class="card-title">Receive</h2>
+            <div class="receive-input-group">
+                <input type="text" class="input-code" id="receiveCode" placeholder="Enter 6-digit code" maxlength="6">
+                <button class="btn btn-primary" id="receiveBtn">Download</button>
+            </div>
+        </section>
+    </div>
+
+    <!-- Right Column: Auth / Profile -->
+    <div class="transfer-column">
+        <section class="card auth-area" id="authArea">
+            {% if messages %}
+            <div class="auth-messages">
+                {% for message in messages %}
+                <div class="auth-msg auth-msg-{{ message.tags }}">{{ message }}</div>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            {% if user.is_authenticated %}
+            <!-- Logged in -->
+            <div id="profilePanel">
+                <h2 class="card-title">Profile</h2>
+                <div class="profile-username">{{ user.username }}</div>
+                <div class="profile-section">
+                    <h3>Recent Files</h3>
+                    <div class="recent-files-list" id="recentFiles">
+                        <div class="empty-hint">No recent files</div>
+                    </div>
+                </div>
+                <div class="profile-section">
+                    <h3>Usage</h3>
+                    <div class="usage-bar">
+                        <div class="usage-fill" style="width: 0%"></div>
+                    </div>
+                    <span class="usage-text">0 / 1 GB</span>
+                </div>
+                <a href="{% url 'logout' %}" class="btn btn-outline btn-full">Log out</a>
+            </div>
+            {% else %}
+            <!-- Not logged in -->
+            <div id="authForm">
+                <h2 class="card-title">Log in & Sign up</h2>
+
+                <div class="auth-toggle">
+                    <button type="button" class="toggle-btn active" id="loginToggle">Log in</button>
+                    <button type="button" class="toggle-btn" id="signupToggle">Sign up</button>
+                </div>
+
+                <!-- Login Form -->
+                <form method="post" action="{% url 'login' %}" id="loginForm">
+                    {% csrf_token %}
+                    <div class="auth-fields">
+                        <input type="hidden" name="next" value="{{ request.GET.next }}">
+                        <input type="text" class="input-field" placeholder="Username" name="username" required>
+                        <input type="password" class="input-field" placeholder="Password" name="password" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-full">Log in</button>
+                </form>
+
+                <!-- Signup Form -->
+                <form method="post" action="{% url 'signup' %}" id="signupForm" class="hidden">
+                    {% csrf_token %}
+                    <div class="auth-fields">
+                        <input type="hidden" name="next" value="{{ request.GET.next }}">
+                        <input type="text" class="input-field" placeholder="Username" name="username" required>
+                        <input type="password" class="input-field" placeholder="Password" name="password" required>
+                        <input type="password" class="input-field" placeholder="Confirm Password" name="confirm_password" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-full">Sign up</button>
+                </form>
+            </div>
+            {% endif %}
+        </section>
+    </div>
+</div>
+{% endblock %}

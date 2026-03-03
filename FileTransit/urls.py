@@ -20,7 +20,9 @@ from django.contrib import admin
 from django.urls import path, include
 
 urlpatterns = [
-    path('admin/', admin.site.urls),
-    path('api/users',include('users.urls')),
-    path('api/manager/',include('manager.urls')),
+
+    path('admin/', admin.site.urls), # Global background control
+    path('users/', include('users.urls')),  #User related API
+    path('', include("manager.urls")),  # for page management
+
 ]
