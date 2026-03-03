@@ -1,9 +1,9 @@
 from django.db import models
-
-
 from django.utils import timezone
 import datetime
 from .utils import get_hash_path
+from django.utils import timezone
+
 
 # Create your models here.
 def default_expire_at():
@@ -29,3 +29,7 @@ class ShareItem(models.Model):
 
     def __str__(self):
         return f"{self.code} - {self.original_name}"
+
+    def is_expired(self):
+        return timezone.now() >= self.expire_at
+

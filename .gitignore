@@ -28,3 +28,5 @@ Desktop.ini
 
 # sqlite
 db.sqlite3
+# files
+files/
