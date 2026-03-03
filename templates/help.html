@@ -1,0 +1,54 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="help-layout">
+    <section class="card help-card">
+        <h2 class="card-title">Help</h2>
+
+        <div class="help-section">
+            <h3>How to Send Files</h3>
+            <ol>
+                <li>Click the <strong>+</strong> button or drag files into the upload area.</li>
+                <li>Review your selected files. Use <strong>Add more files</strong> if needed.</li>
+                <li>Choose to share via <strong>QR Code</strong> or <strong>Link</strong>.</li>
+                <li>Click <strong>Send</strong> to generate a 6-digit share code.</li>
+                <li>Share the code, QR code, or link with the recipient.</li>
+            </ol>
+        </div>
+
+        <div class="help-section">
+            <h3>How to Receive Files</h3>
+            <ol>
+                <li>Enter the <strong>6-digit code</strong> in the Receive area.</li>
+                <li>Click <strong>Download</strong> to retrieve the files.</li>
+            </ol>
+        </div>
+
+        <div class="help-section">
+            <h3>History</h3>
+            <p>View all your sent and received files in the <strong>History</strong> page. You can filter, rename, resend, download, or delete files.</p>
+        </div>
+
+        <div class="help-section">
+            <h3>Account</h3>
+            <p>Create an account to keep track of your transfers and manage your file history. Without an account, transfers are temporary and expire after 10 minutes.</p>
+        </div>
+
+        <div class="help-section">
+            <h3>FAQ</h3>
+            <div class="faq-item">
+                <strong>What is the maximum file size?</strong>
+                <p>You can send files up to 1 GB per transfer.</p>
+            </div>
+            <div class="faq-item">
+                <strong>How long do files stay available?</strong>
+                <p>Files expire after 10 minutes for anonymous users, or 48 hours for registered users.</p>
+            </div>
+            <div class="faq-item">
+                <strong>Is my data secure?</strong>
+                <p>All transfers are encrypted. Files are automatically deleted after expiration.</p>
+            </div>
+        </div>
+    </section>
+</div>
+{% endblock %}

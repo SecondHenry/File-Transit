@@ -4,7 +4,6 @@ from django.contrib.auth.models import User
 from django.contrib import messages
 
 
-
 def login_view(request):
     if request.method == 'POST':
         next_url = request.POST.get('next') or request.GET.get('next')

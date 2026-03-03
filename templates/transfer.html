@@ -104,7 +104,9 @@
                 <form method="post" action="{% url 'login' %}" id="loginForm">
                     {% csrf_token %}
                     <div class="auth-fields">
+
                         <input type="hidden" name="next" value="{{ request.GET.next }}">
+
                         <input type="text" class="input-field" placeholder="Username" name="username" required>
                         <input type="password" class="input-field" placeholder="Password" name="password" required>
                     </div>
@@ -115,7 +117,9 @@
                 <form method="post" action="{% url 'signup' %}" id="signupForm" class="hidden">
                     {% csrf_token %}
                     <div class="auth-fields">
+
                         <input type="hidden" name="next" value="{{ request.GET.next }}">
+
                         <input type="text" class="input-field" placeholder="Username" name="username" required>
                         <input type="password" class="input-field" placeholder="Password" name="password" required>
                         <input type="password" class="input-field" placeholder="Confirm Password" name="confirm_password" required>
