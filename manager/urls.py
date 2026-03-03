@@ -21,7 +21,7 @@ from . import  views
 
 urlpatterns = [
     path('', views.transfer, name='transfer'),  # home page
-    path('history/', views.history, name='history'), # history
+    path('api/history/', views.history, name='history'), # history
     path('help/', views.help_page, name='help'), # help
     #path('auth-required/', views.auth_required, name='auth_required'),] # auth_required
     path("api/upload/", views.upload_file, name="upload_file"),
