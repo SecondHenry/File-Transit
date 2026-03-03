@@ -25,5 +25,5 @@ urlpatterns = [
     path('help/', views.help_page, name='help'), # help
     #path('auth-required/', views.auth_required, name='auth_required'),] # auth_required
     path("api/upload/", views.upload_file, name="upload_file"),
-    path("download/<str:code>/", views.download_file, name="download_file"),
+    path("api/download/<str:code>/", views.download_file, name="download_file"),
 ]

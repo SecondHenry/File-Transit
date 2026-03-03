@@ -6,7 +6,8 @@ from django.http import JsonResponse, FileResponse, Http404
 from django.utils import timezone
 from django.shortcuts import render, redirect
 from django.contrib import messages
-
+from django.views.decorators.csrf import csrf_exempt  # @use for dev test
+from django.views.decorators.http import require_POST  # @use for dev test
 from urllib.parse import urlencode
 from django.urls import reverse
 
@@ -20,7 +21,38 @@ def history(request):
         messages.error(request, 'Please log in to view your transfer history.')
         qs = urlencode({"next": request.path})  # /history/
         return redirect(f"{reverse('transfer')}?{qs}")
-    return render(request, 'history.html', {'active_page': 'history'})
+
+    shares = (
+        ShareItem.objects
+        .select_related("file_content")
+        .order_by("-created_at")[:200]
+    )
+    rows = []
+    for s in shares:
+        name = s.original_name or ""
+        ext = name.rsplit(".", 1)[-1].lower() if "." in name else ""
+        rows.append({
+            "id": s.id,
+            "code": s.code,
+            "name": name,
+            "size": s.file_content.size if s.file_content else 0,
+            "created_at": s.created_at,
+            "type": ext,
+            "expired": bool(s.expire_at and s.expire_at <= s.created_at),  # 先占位，不影响显示
+        })
+    print("---- HISTORY ITEMS ----")
+    for s in shares:
+        print(
+            f"id={s.id} code={s.code} name={s.original_name} "
+            f"size={s.file_content.size if s.file_content else None} "
+            f"created={s.created_at} expire={s.expire_at}"
+        )
+    print("-----------------------") # test history
+    return render(request, "history.html", {
+        "active_page": "history",
+        "rows": rows,
+    })
+    #return render(request, 'history.html', {'active_page': 'history'})
 
 def help_page(request):
     return render(request, 'help.html', {'active_page': 'help'})
@@ -30,15 +62,19 @@ def auth_required(request):
     messages.error(request, 'Please log in to send or receive.')
     return redirect('transfer')
 
+@csrf_exempt # @use for dev test
+@require_POST # @use for dev test
 def upload_file(request):
     if request.method == 'POST':
         file_obj = request.FILES.get('file')
 
         # 1. Calculate MD5
         file_md5 = calculate_md5(file_obj)
+        file_obj.seek(0)
 
         # 2. Check whether the physical file already exists in the database (Second Transfer Core)
         file_content = FileContent.objects.filter(hash_code=file_md5).first()
+        is_instant = file_content is not None
 
         if not file_content:
             # If not, create and physically save the file
@@ -50,6 +86,9 @@ def upload_file(request):
 
         # 3. Regardless of whether it is uploaded instantly or not, a new "extraction code" will be generated for this upload.
         share_code = str(uuid.uuid4())[:6]  # Generate 6-digit random code
+        while ShareItem.objects.filter(code=share_code).exists():
+            share_code = uuid.uuid4().hex[:6]
+
         ShareItem.objects.create(
             file_content=file_content,
             code=share_code,
@@ -60,7 +99,7 @@ def upload_file(request):
         return JsonResponse({
             'status': 'success',
             'share_code': share_code,
-            'is_instant': file_content is not None  # Tell the front end whether the transmission is instantaneous
+            'is_instant': is_instant  # Tell the front end whether the transmission is instantaneous
         })
 
 def download_file(request, code: str):
