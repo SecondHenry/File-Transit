@@ -13,47 +13,48 @@ from django.urls import reverse
 
 # Create your views here.
 
-def transfer(request):
+def transfer_page(request):
     return render(request, 'transfer.html', {'active_page': 'transfer'})
 
-def history(request):
+def history_page(request):
     if not request.user.is_authenticated:
         messages.error(request, 'Please log in to view your transfer history.')
         qs = urlencode({"next": request.path})  # /history/
         return redirect(f"{reverse('transfer')}?{qs}")
+
+    return render(request, "history.html", {
+        "active_page": "history",
+    })
+
+def history_api(request):
+    if not request.user.is_authenticated:
+        return JsonResponse({"detail": "Authentication required"}, status=401)
 
     shares = (
         ShareItem.objects
         .select_related("file_content")
         .order_by("-created_at")[:200]
     )
-    rows = []
+
+    items = []
+
     for s in shares:
         name = s.original_name or ""
         ext = name.rsplit(".", 1)[-1].lower() if "." in name else ""
-        rows.append({
+
+        items.append({
             "id": s.id,
             "code": s.code,
             "name": name,
             "size": s.file_content.size if s.file_content else 0,
-            "created_at": s.created_at,
+            "created_at": s.created_at.isoformat(),
             "type": ext,
-            "expired": bool(s.expire_at and s.expire_at <= s.created_at),  # 先占位，不影响显示
+            "download_url": request.build_absolute_uri(
+                reverse("download_file", kwargs={"code": s.code})
+            ),
         })
-    print("---- HISTORY ITEMS ----")
-    for s in shares:
-        print(
-            f"id={s.id} code={s.code} name={s.original_name} "
-            f"size={s.file_content.size if s.file_content else None} "
-            f"created={s.created_at} expire={s.expire_at}"
-        )
-    print("-----------------------") # test history
-    return render(request, "history.html", {
-        "active_page": "history",
-        "rows": rows,
-    })
-    #return render(request, 'history.html', {'active_page': 'history'})
 
+    return JsonResponse({"items": items})
 def help_page(request):
     return render(request, 'help.html', {'active_page': 'help'})
 
@@ -67,6 +68,11 @@ def auth_required(request):
 def upload_file(request):
     if request.method == 'POST':
         file_obj = request.FILES.get('file')
+        if not file_obj:
+            return JsonResponse(
+                {"status": "error", "message": "file is required"},
+                status=400
+            )
 
         # 1. Calculate MD5
         file_md5 = calculate_md5(file_obj)
@@ -95,11 +101,15 @@ def upload_file(request):
             original_name=file_obj.name,
             # Other fields such as expire_at can be set here
         )
-
+        # download short urls
+        download_url = request.build_absolute_uri(
+            reverse("download_file", kwargs={"code": share_code})
+        )
         return JsonResponse({
             'status': 'success',
             'share_code': share_code,
-            'is_instant': is_instant  # Tell the front end whether the transmission is instantaneous
+            'is_instant': is_instant,  # Tell the front end whether the transmission is instantaneous
+            "download_url": download_url
         })
 
 def download_file(request, code: str):
