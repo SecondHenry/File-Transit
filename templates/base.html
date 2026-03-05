@@ -1,0 +1,33 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FileTransit</title>
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+</head>
+<body>
+    <!-- Top Navigation -->
+    <nav class="top-nav">
+        <div class="nav-left">
+            <a href="{% url 'transfer' %}" class="logo">FileTransit</a>
+        </div>
+        <div class="nav-center">
+            <a href="{% url 'transfer' %}" class="nav-btn {% if active_page == 'transfer' %}active{% endif %}">Transfer</a>
+            <a href="{% url 'history' %}" class="nav-btn {% if active_page == 'history' %}active{% endif %}">History</a>
+        </div>
+        <div class="nav-right">
+            <a href="{% url 'help' %}" class="nav-btn {% if active_page == 'help' %}active{% endif %}">Help</a>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        {% block content %}{% endblock %}
+    </main>
+
+    <script>const IS_AUTHENTICATED = {{ user.is_authenticated|yesno:"true,false" }};</script>
+    <script src="{% static 'js/app.js' %}"></script>
+</body>
+</html>
