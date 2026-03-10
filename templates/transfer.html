@@ -21,11 +21,11 @@
 
             <!-- State 2: Files uploaded -->
             <div class="send-state hidden" id="sendUploaded">
-                <button class="btn btn-outline btn-sm" id="addMoreBtn">+ Add more files</button>
+                <button class="btn btn-outline btn-sm" id="addMoreBtn">Change File</button>
                 <div class="file-list" id="fileList"></div>
-                <div class="send-actions">
-                    <button class="btn btn-outline" id="qrBtn">QR Code</button>
-                    <button class="btn btn-outline" id="linkBtn">Link</button>
+                <div class="auth-toggle">
+                    <button type="button" class="toggle-btn active" id="qrBtn">QR Code</button>
+                    <button type="button" class="toggle-btn" id="linkBtn">Link</button>
                 </div>
                 <button class="btn btn-primary btn-full" id="sendBtn">Send</button>
             </div>
@@ -41,9 +41,13 @@
                     <span class="share-code" id="shareCode">------</span>
                 </div>
                 <div class="share-visual" id="shareVisual">
-                    <div class="qr-placeholder" id="qrPlaceholder">
-                        <div class="qr-fake"></div>
+                    <div id="qrDisplay">
+                        <img id="qrImage" alt="QR Code">
                         <p>Scan to download</p>
+                    </div>
+                    <div id="linkDisplay" class="hidden">
+                        <span class="share-link" id="shareLink"></span>
+                        <button class="btn btn-outline btn-sm" id="copyLinkBtn">Copy</button>
                     </div>
                 </div>
             </div>
@@ -53,7 +57,7 @@
         <section class="card receive-area">
             <h2 class="card-title">Receive</h2>
             <div class="receive-input-group">
-                <input type="text" class="input-code" id="receiveCode" placeholder="Enter 6-digit code" maxlength="6">
+                <input type="text" class="input-code" id="receiveCode" placeholder="Enter code" maxlength="6">
                 <button class="btn btn-primary" id="receiveBtn">Download</button>
             </div>
         </section>
