@@ -29,19 +29,41 @@ function initTransferPage() {
     const fileList = document.getElementById('fileList');
 
     let uploadedFiles = [];
+    let lastDownloadUrl = '';
+    let shareMode = 'qr';
 
     // Login check helper
-    function requireAuth() {
+    function requireAuth(msg) {
         if (!IS_AUTHENTICATED) {
-            window.location.href = '/auth-required/';
+            const authArea = document.getElementById('authArea');
+            if (authArea) {
+                authArea.scrollIntoView({ behavior: 'smooth' });
+                authArea.style.outline = '2px solid #e74c3c';
+                setTimeout(() => authArea.style.outline = '', 2000);
+                if (msg) {
+                    let container = authArea.querySelector('.auth-messages');
+                    if (!container) {
+                        container = document.createElement('div');
+                        container.className = 'auth-messages';
+                        authArea.insertBefore(container, authArea.firstChild);
+                    }
+                    container.innerHTML = '<div class="auth-msg auth-msg-error">' + msg + '</div>';
+                }
+            }
             return false;
         }
         return true;
     }
 
+    // Auto-highlight auth area if redirected from a protected page
+    const nextParam = new URLSearchParams(window.location.search).get('next');
+    if (nextParam && !IS_AUTHENTICATED) {
+        requireAuth();
+    }
+
     // Upload button click
-    uploadBtn.addEventListener('click', () => { if (requireAuth()) fileInput.click(); });
-    addMoreBtn.addEventListener('click', () => { if (requireAuth()) fileInput.click(); });
+    uploadBtn.addEventListener('click', () => { if (requireAuth('Please log in to upload files.')) fileInput.click(); });
+    addMoreBtn.addEventListener('click', () => { if (requireAuth('Please log in to upload files.')) fileInput.click(); });
 
     // File input change
     fileInput.addEventListener('change', (e) => {
@@ -62,12 +84,22 @@ function initTransferPage() {
     uploadZone.addEventListener('drop', (e) => {
         e.preventDefault();
         uploadZone.classList.remove('drag-over');
-        if (!requireAuth()) return;
+        if (!requireAuth('Please log in to upload files.')) return;
         addFiles(Array.from(e.dataTransfer.files));
     });
 
+    const MAX_FILE_SIZE = 384 * 1024 * 1024; // 384 MB
+
     function addFiles(files) {
-        uploadedFiles = uploadedFiles.concat(files);
+        if (files.length > 1) {
+            alert('Only single file upload is supported.');
+            return;
+        }
+        if (files[0].size > MAX_FILE_SIZE) {
+            alert('File size exceeds 384 MB limit.');
+            return;
+        }
+        uploadedFiles = [files[0]];
         renderFileList();
         showState('uploaded');
     }
@@ -99,11 +131,28 @@ function initTransferPage() {
     }
 
     // Send button
-    sendBtn.addEventListener('click', () => {
-        const code = generateCode();
-        document.getElementById('shareCode').textContent = code;
+    sendBtn.addEventListener('click', async () => {
+        if (!requireAuth('Please log in to send files.')) return;
+        if (uploadedFiles.length === 0) return;
+        sendBtn.disabled = true;
+        sendBtn.textContent = 'Uploading...';
+        const formData = new FormData();
+        formData.append('file', uploadedFiles[0]);
+        const res = await fetch('/api/upload/', { method: 'POST', body: formData });
+        if (!res.ok) {
+            alert('Upload failed');
+            sendBtn.disabled = false;
+            sendBtn.textContent = 'Send';
+            return;
+        }
+        const data = await res.json();
+        document.getElementById('shareCode').textContent = data.share_code;
+        lastDownloadUrl = data.download_url;
         showState('transferred');
+        renderShareVisual();
         startTimer();
+        sendBtn.disabled = false;
+        sendBtn.textContent = 'Send';
     });
 
     // Back button
@@ -113,23 +162,56 @@ function initTransferPage() {
         showState('initial');
     });
 
-    // QR / Link buttons (visual only)
+    // QR / Link mode selector (before send)
     qrBtn.addEventListener('click', () => {
-        qrBtn.classList.toggle('active-action');
+        shareMode = 'qr';
+        qrBtn.classList.add('active');
+        linkBtn.classList.remove('active');
     });
 
     linkBtn.addEventListener('click', () => {
-        linkBtn.classList.toggle('active-action');
+        shareMode = 'link';
+        linkBtn.classList.add('active');
+        qrBtn.classList.remove('active');
     });
 
     // Receive button
-    receiveBtn.addEventListener('click', () => {
-        if (!requireAuth()) return;
+    receiveBtn.addEventListener('click', async () => {
+        if (!requireAuth('Please log in to download files.')) return;
         const code = document.getElementById('receiveCode').value.trim();
-        if (code.length === 6) {
-            alert('Looking up code: ' + code + '\n(Frontend demo only)');
+        if (!code) return;
+        const res = await fetch('/d/' + code + '/');
+        if (!res.ok) {
+            alert('INVALID');
+            return;
         }
+        window.location.href = '/d/' + code + '/';
     });
+
+    function renderShareVisual() {
+        const qrDisplay = document.getElementById('qrDisplay');
+        const linkDisplay = document.getElementById('linkDisplay');
+        if (shareMode === 'qr') {
+            qrDisplay.classList.remove('hidden');
+            linkDisplay.classList.add('hidden');
+            const qrImage = document.getElementById('qrImage');
+            qrImage.src = 'https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=' + encodeURIComponent(lastDownloadUrl);
+        } else {
+            qrDisplay.classList.add('hidden');
+            linkDisplay.classList.remove('hidden');
+            document.getElementById('shareLink').textContent = lastDownloadUrl;
+        }
+    }
+
+    // Copy link button in transferred state
+    const copyLinkBtn = document.getElementById('copyLinkBtn');
+    if (copyLinkBtn) {
+        copyLinkBtn.addEventListener('click', () => {
+            navigator.clipboard.writeText(lastDownloadUrl);
+            copyLinkBtn.textContent = 'Copied!';
+            setTimeout(() => copyLinkBtn.textContent = 'Copy', 1500);
+        });
+    }
 
     function showState(state) {
         document.getElementById('sendInitial').classList.toggle('hidden', state !== 'initial');
@@ -174,76 +256,125 @@ function initTransferPage() {
             loginForm.classList.add('hidden');
         });
     }
+
+    // Handle resend from history page
+    const params = new URLSearchParams(window.location.search);
+    const resendUrl = params.get('resend_url');
+    const resendName = params.get('resend_name');
+    if (resendUrl && resendName) {
+        fetch(resendUrl)
+            .then(res => res.blob())
+            .then(blob => {
+                const file = new File([blob], resendName, { type: blob.type });
+                uploadedFiles = [file];
+                renderFileList();
+                showState('uploaded');
+            });
+        // Clean URL params
+        window.history.replaceState({}, '', '/');
+    }
+
+    // Load recent files in profile panel
+    const recentFiles = document.getElementById('recentFiles');
+    if (recentFiles && IS_AUTHENTICATED) {
+        fetch('/api/history/')
+            .then(res => res.json())
+            .then(data => {
+                if (!data.items || data.items.length === 0) return;
+                recentFiles.innerHTML = '';
+                data.items.slice(0, 3).forEach(item => {
+                    const div = document.createElement('div');
+                    div.className = 'recent-file-item';
+                    div.innerHTML = `<span class="recent-file-name">${item.name}</span><span class="recent-file-size">${formatSize(item.size)}</span>`;
+                    recentFiles.appendChild(div);
+                });
+            });
+    }
 }
 
 // ========== History Page Logic ==========
 function initHistoryPage() {
-    const filterAll = document.getElementById('filterAll');
-    const filterSent = document.getElementById('filterSent');
-    const filterReceived = document.getElementById('filterReceived');
+    const tableBody = document.getElementById('fileTableBody');
     const selectAll = document.getElementById('selectAll');
-    const rows = document.querySelectorAll('.file-row');
     const actionBtns = document.querySelectorAll('#resendBtn, #renameBtn, #downloadBtn, #deleteBtn');
 
-    // Filter
-    [filterAll, filterSent, filterReceived].forEach(btn => {
-        btn.addEventListener('click', () => {
-            [filterAll, filterSent, filterReceived].forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
+    if (!IS_AUTHENTICATED) {
+        tableBody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:2rem;">Please log in to view your file history.</td></tr>';
+        return;
+    }
 
-            const type = btn.id.replace('filter', '').toLowerCase();
-            rows.forEach(row => {
-                if (type === 'all') {
-                    row.style.display = '';
+    fetch('/api/history/')
+        .then(res => res.json())
+        .then(data => {
+            if (!data.items || data.items.length === 0) {
+                tableBody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:2rem;">No files yet</td></tr>';
+                return;
+            }
+            data.items.forEach(item => {
+                const tr = document.createElement('tr');
+                tr.className = 'file-row';
+                tr.dataset.url = item.download_url;
+                tr.dataset.name = item.name;
+                tr.dataset.type = 'Sent';
+                tr.innerHTML = `
+                    <td><input type="checkbox" class="file-check"></td>
+                    <td class="file-name">${item.name}</td>
+                    <td>${formatSize(item.size)}</td>
+                    <td>${new Date(item.created_at).toLocaleDateString()}</td>
+                    <td>${tr.dataset.type}</td>
+                `;
+                tableBody.appendChild(tr);
+            });
+            bindRowEvents();
+            bindFilterEvents();
+        });
+
+    function bindRowEvents() {
+        const rows = document.querySelectorAll('.file-row');
+
+        function selectOnly(targetRow) {
+            rows.forEach(r => {
+                const cb = r.querySelector('.file-check');
+                if (r === targetRow) {
+                    cb.checked = !cb.checked;
                 } else {
-                    row.style.display = row.dataset.type === type ? '' : 'none';
+                    cb.checked = false;
                 }
+                r.classList.toggle('selected', cb.checked);
+            });
+            selectAll.checked = false;
+            updateActionButtons();
+        }
+
+        rows.forEach(row => {
+            const checkbox = row.querySelector('.file-check');
+            row.addEventListener('click', (e) => {
+                if (e.target.type === 'checkbox') {
+                    e.preventDefault();
+                }
+                selectOnly(row);
             });
         });
-    });
-
-    // Row selection
-    rows.forEach(row => {
-        const checkbox = row.querySelector('.file-check');
-        row.addEventListener('click', (e) => {
-            if (e.target.type === 'checkbox') return;
-            checkbox.checked = !checkbox.checked;
-            row.classList.toggle('selected', checkbox.checked);
-            updateActionButtons();
-        });
-
-        checkbox.addEventListener('change', () => {
-            row.classList.toggle('selected', checkbox.checked);
-            updateActionButtons();
-        });
-    });
-
-    // Select all
-    selectAll.addEventListener('change', () => {
-        rows.forEach(row => {
-            if (row.style.display !== 'none') {
-                const cb = row.querySelector('.file-check');
-                cb.checked = selectAll.checked;
-                row.classList.toggle('selected', selectAll.checked);
-            }
-        });
-        updateActionButtons();
-    });
+    }
 
     function updateActionButtons() {
         const checked = document.querySelectorAll('.file-check:checked').length;
         actionBtns.forEach(btn => btn.disabled = checked === 0);
     }
 
-    // Action button demos
+    // Download selected files
+    document.getElementById('downloadBtn').addEventListener('click', () => {
+        const selected = document.querySelectorAll('.file-row.selected');
+        selected.forEach(row => {
+            if (row.dataset.url) window.open(row.dataset.url, '_blank');
+        });
+    });
+
+    // Delete (frontend only, no backend API)
     document.getElementById('deleteBtn').addEventListener('click', () => {
         const selected = document.querySelectorAll('.file-row.selected');
         selected.forEach(row => row.remove());
         updateActionButtons();
-    });
-
-    document.getElementById('downloadBtn').addEventListener('click', () => {
-        alert('Download started (Frontend demo only)');
     });
 
     document.getElementById('renameBtn').addEventListener('click', () => {
@@ -256,8 +387,44 @@ function initHistoryPage() {
     });
 
     document.getElementById('resendBtn').addEventListener('click', () => {
-        alert('File resent (Frontend demo only)');
+        const selected = document.querySelector('.file-row.selected');
+        if (!selected) return;
+        const url = selected.dataset.url;
+        const name = selected.dataset.name;
+        window.location.href = '/?resend_url=' + encodeURIComponent(url) + '&resend_name=' + encodeURIComponent(name);
     });
+
+    // Filter buttons
+    function bindFilterEvents() {
+        const filterAll = document.getElementById('filterAll');
+        const filterSent = document.getElementById('filterSent');
+        const filterReceived = document.getElementById('filterReceived');
+        const filterBtns = [filterAll, filterSent, filterReceived];
+
+        filterBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                filterBtns.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+
+                const filter = btn.id.replace('filter', '');
+                document.querySelectorAll('.file-row').forEach(row => {
+                    if (filter === 'All') {
+                        row.style.display = '';
+                    } else {
+                        row.style.display = row.dataset.type === filter ? '' : 'none';
+                    }
+                    // Uncheck hidden rows
+                    if (row.style.display === 'none') {
+                        const cb = row.querySelector('.file-check');
+                        cb.checked = false;
+                        row.classList.remove('selected');
+                    }
+                });
+                selectAll.checked = false;
+                updateActionButtons();
+            });
+        });
+    }
 }
 
 // ========== Utilities ==========
