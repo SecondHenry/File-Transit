@@ -134,6 +134,7 @@ body {
     color: var(--primary);
 }
 
+
 .btn-danger {
     background: var(--danger);
     color: #fff;
@@ -455,6 +456,32 @@ body {
 .recent-files-list {
     max-height: 150px;
     overflow-y: auto;
+}
+
+.recent-file-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 13px;
+}
+
+.recent-file-item:last-child {
+    border-bottom: none;
+}
+
+.recent-file-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    flex: 1;
+    margin-right: 8px;
+}
+
+.recent-file-size {
+    color: var(--text-light);
+    flex-shrink: 0;
 }
 
 .empty-hint {
