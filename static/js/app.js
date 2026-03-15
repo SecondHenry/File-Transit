@@ -60,7 +60,7 @@ function initTransferPage() {
     // Auto-highlight auth area if redirected from a protected page
     const nextParam = new URLSearchParams(window.location.search).get('next');
     if (nextParam && !IS_AUTHENTICATED) {
-        requireAuth();
+        requireAuth('Please log in to continue.');
     }
 
     // Upload button click
@@ -204,6 +204,32 @@ function initTransferPage() {
         qrBtn.classList.remove('active');
     });
 
+    // QR / Link mode selector (after send, in transferred state)
+    const qrBtnResult = document.getElementById('qrBtnResult');
+    const linkBtnResult = document.getElementById('linkBtnResult');
+
+    function syncResultToggle() {
+        if (shareMode === 'qr') {
+            qrBtnResult.classList.add('active');
+            linkBtnResult.classList.remove('active');
+        } else {
+            linkBtnResult.classList.add('active');
+            qrBtnResult.classList.remove('active');
+        }
+    }
+
+    qrBtnResult.addEventListener('click', () => {
+        shareMode = 'qr';
+        syncResultToggle();
+        renderShareVisual();
+    });
+
+    linkBtnResult.addEventListener('click', () => {
+        shareMode = 'link';
+        syncResultToggle();
+        renderShareVisual();
+    });
+
     // Receive button
     receiveBtn.addEventListener('click', async () => {
         const code = document.getElementById('receiveCode').value.trim().toLowerCase();
@@ -213,6 +239,7 @@ function initTransferPage() {
     });
 
     function renderShareVisual() {
+        syncResultToggle();
         const qrDisplay = document.getElementById('qrDisplay');
         const linkDisplay = document.getElementById('linkDisplay');
         if (shareMode === 'qr') {

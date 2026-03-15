@@ -11,7 +11,6 @@ from django.views.decorators.csrf import csrf_exempt  # @use for dev test
 from django.views.decorators.http import require_POST  # @use for dev test
 from urllib.parse import urlencode
 from django.urls import reverse
-from django.contrib.auth.decorators import login_required
 
 # Create your views here.
 
@@ -105,8 +104,10 @@ def auth_required(request):
 
 @csrf_exempt # @use for dev test
 @require_POST # @use for dev test
-@login_required
 def upload_file(request):
+    if not request.user.is_authenticated:
+        return JsonResponse({"detail": "Authentication required"}, status=401)
+
     if request.method == 'POST':
         file_obj = request.FILES.get('file')
         if not file_obj:
@@ -155,8 +156,12 @@ def upload_file(request):
             "expire_at": share_item.expire_at.isoformat(),
             "is_available": share_item.file_content.retention_until > timezone.now()
         })
-@login_required
 def download_file(request, code: str):
+    if not request.user.is_authenticated:
+        messages.error(request, 'Please log in to download files.')
+        qs = urlencode({"next": request.path})
+        return redirect(f"{reverse('transfer')}?{qs}")
+
     share = ShareItem.objects.select_related("file_content").filter(code=code).first()
     if not share:
         raise Http404("Invalid code")
