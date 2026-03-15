@@ -3,6 +3,7 @@ from .utils import calculate_md5
 import uuid
 import os
 import json
+from django.db.models import Sum
 from django.http import JsonResponse, FileResponse, Http404
 from django.utils import timezone
 from django.shortcuts import render, redirect
@@ -64,8 +65,27 @@ def history_api(request):
             "is_available": is_available,
             "retention_until": file_content.retention_until.isoformat() if file_content and file_content.retention_until else None,
         })
+    file_ids = (
+        ShareItem.objects
+        .filter(owner=request.user)
+        .values_list("file_content_id", flat=True)
+        .distinct()
+    )
 
-    return JsonResponse({"items": items})
+    used_bytes = (
+                     FileContent.objects
+                     .filter(id__in=file_ids)
+                     .aggregate(total=Sum("size"))
+                 )["total"] or 0
+
+    limit_bytes = 1 * 1024 * 1024 * 1024  # 1 GB
+    return JsonResponse({
+        "items": items,
+        "usage": {
+                 "used_bytes": used_bytes,
+                 "limit_bytes": limit_bytes,
+             }
+    })
 
 @csrf_exempt
 @require_POST
@@ -73,15 +93,12 @@ def delete_history_item(request):
     if not request.user.is_authenticated:
         return JsonResponse({"detail": "Authentication required"}, status=401)
 
-    print("raw body:", request.body)
-
     try:
         data = json.loads(request.body)
-        print("parsed data:", data)
         share_id = data.get("id")
-        print("share_id:", share_id)
+
     except Exception as e:
-        print("json error:", e)
+
         return JsonResponse({"detail": "Invalid request body"}, status=400)
 
     if not share_id:
@@ -91,7 +108,15 @@ def delete_history_item(request):
     if not share:
         return JsonResponse({"detail": "Not found"}, status=404)
 
+    file_content = share.file_content
+
     share.delete()
+
+    if file_content and not ShareItem.objects.filter(file_content=file_content).exists():
+        file_field = file_content.file_obj
+        if file_field and os.path.exists(file_field.path):
+            os.remove(file_field.path)
+        file_content.delete()
     return JsonResponse({"status": "success"})
 
 def help_page(request):
@@ -102,20 +127,25 @@ def auth_required(request):
     messages.error(request, 'Please log in to send or receive.')
     return redirect('transfer')
 
+
+MAX_FILE_SIZE = 32 * 1024 * 1024  # 32 MB
 @csrf_exempt # @use for dev test
 @require_POST # @use for dev test
 def upload_file(request):
     if not request.user.is_authenticated:
         return JsonResponse({"detail": "Authentication required"}, status=401)
 
-    if request.method == 'POST':
-        file_obj = request.FILES.get('file')
+    file_obj = request.FILES.get('file')
         if not file_obj:
             return JsonResponse(
                 {"status": "error", "message": "file is required"},
                 status=400
             )
-
+        if file_obj.size > MAX_FILE_SIZE:
+            return JsonResponse(
+                {"status": "error", "message": "File size exceeds 32 MB limit."},
+                status=400
+        )
         # 1. Calculate MD5
         file_md5 = calculate_md5(file_obj)
         file_obj.seek(0)
@@ -154,7 +184,6 @@ def upload_file(request):
             'is_instant': is_instant,  # Tell the front end whether the transmission is instantaneous
             "download_url": download_url,
             "expire_at": share_item.expire_at.isoformat(),
-            "is_available": share_item.file_content.retention_until > timezone.now()
         })
 def download_file(request, code: str):
     if not request.user.is_authenticated:
