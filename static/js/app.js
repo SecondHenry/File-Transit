@@ -341,6 +341,8 @@ function initHistoryPage() {
             }
             data.items.forEach(item => {
                 const tr = document.createElement('tr');
+                const status = item.is_available ? 'Available' : 'Expired';
+
                 tr.className = 'file-row';
                 tr.dataset.url = item.download_url;
                 tr.dataset.name = item.name;
@@ -351,6 +353,7 @@ function initHistoryPage() {
                     <td>${formatSize(item.size)}</td>
                     <td>${new Date(item.created_at).toLocaleDateString()}</td>
                     <td>${tr.dataset.type}</td>
+                    <td class="status ${item.is_available ? 'active' : 'expired'}">${status}</td>
                 `;
                 tableBody.appendChild(tr);
             });

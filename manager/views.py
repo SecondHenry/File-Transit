@@ -33,6 +33,7 @@ def history_api(request):
     shares = (
         ShareItem.objects
         .select_related("file_content")
+        .filter(owner=request.user)
         .order_by("-created_at")[:200]
     )
 
@@ -42,16 +43,25 @@ def history_api(request):
         name = s.original_name or ""
         ext = name.rsplit(".", 1)[-1].lower() if "." in name else ""
 
+        file_content = s.file_content
+        is_available = (
+                file_content is not None
+                and file_content.retention_until is not None
+                and file_content.retention_until > timezone.now()
+        )
+
         items.append({
             "id": s.id,
             "code": s.code,
             "name": name,
-            "size": s.file_content.size if s.file_content else 0,
+            "size": file_content.size if file_content else 0,
             "created_at": s.created_at.isoformat(),
             "type": ext,
             "download_url": request.build_absolute_uri(
                 reverse("download_file", kwargs={"code": s.code})
             ),
+            "is_available": is_available,
+            "retention_until": file_content.retention_until.isoformat() if file_content and file_content.retention_until else None,
         })
 
     return JsonResponse({"items": items})
@@ -96,6 +106,7 @@ def upload_file(request):
             share_code = uuid.uuid4().hex[:6]
 
         share_item= ShareItem.objects.create(
+            owner=request.user,
             file_content=file_content,
             code=share_code,
             original_name=file_obj.name,
@@ -111,6 +122,7 @@ def upload_file(request):
             'is_instant': is_instant,  # Tell the front end whether the transmission is instantaneous
             "download_url": download_url,
             "expire_at": share_item.expire_at.isoformat(),
+            "is_available": share_item.file_content.retention_until > timezone.now()
         })
 
 def download_file(request, code: str):
