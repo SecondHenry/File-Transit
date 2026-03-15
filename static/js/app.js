@@ -88,7 +88,7 @@ function initTransferPage() {
         addFiles(Array.from(e.dataTransfer.files));
     });
 
-    const MAX_FILE_SIZE = 384 * 1024 * 1024; // 384 MB
+    const MAX_FILE_SIZE = 32 * 1024 * 1024; // 32 MB
 
     function addFiles(files) {
         if (files.length > 1) {
@@ -96,7 +96,7 @@ function initTransferPage() {
             return;
         }
         if (files[0].size > MAX_FILE_SIZE) {
-            alert('File size exceeds 384 MB limit.');
+            alert('File size exceeds 32 MB limit.');
             return;
         }
         uploadedFiles = [files[0]];

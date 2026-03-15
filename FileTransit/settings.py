@@ -26,7 +26,11 @@ SECRET_KEY = 'django-insecure-h^-qxst+u3tp8v3_rmzsm%_u6)qc@c&u7jqh#58!a6*(nox-0r
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['filetransit.mza5oti0ms5d.studio', '127.0.0.1', 'localhost']
+
+# Cloudflare Tunnel settings
+CSRF_TRUSTED_ORIGINS = ['https://filetransit.mza5oti0ms5d.studio']
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
 
 # Application definition
@@ -130,3 +134,7 @@ MEDIA_URL = '/files/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'files')
 
 #LOGIN_URL = "/users/login/" # actual login route
+
+# Max upload size: 32 MB
+DATA_UPLOAD_MAX_MEMORY_SIZE = 32 * 1024 * 1024
+FILE_UPLOAD_MAX_MEMORY_SIZE = 32 * 1024 * 1024
