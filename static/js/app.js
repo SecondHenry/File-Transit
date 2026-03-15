@@ -388,13 +388,13 @@ function initHistoryPage() {
                 tr.dataset.id = item.id;
                 tr.dataset.url = item.download_url;
                 tr.dataset.name = item.name;
-                tr.dataset.type = 'Sent';
+                tr.dataset.type = item.type;
                 tr.innerHTML = `
                     <td><input type="checkbox" class="file-check"></td>
                     <td class="file-name">${item.name}</td>
                     <td>${formatSize(item.size)}</td>
                     <td>${new Date(item.created_at).toLocaleDateString()}</td>
-                    <td>${tr.dataset.type}</td>
+                    <td>${item.type}</td>
                     <td class="status ${item.is_available ? 'active' : 'expired'}">${status}</td>
                 `;
                 tableBody.appendChild(tr);
