@@ -58,7 +58,7 @@ def history_api(request):
             "name": name,
             "size": file_content.size if file_content else 0,
             "created_at": s.created_at.isoformat(),
-            "type": "sent",
+            "type": "Sent",
             "download_url": request.build_absolute_uri(
                 reverse("download_file", kwargs={"code": s.code})
             ),
