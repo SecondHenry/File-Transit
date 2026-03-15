@@ -136,55 +136,54 @@ def upload_file(request):
         return JsonResponse({"detail": "Authentication required"}, status=401)
 
     file_obj = request.FILES.get('file')
-        if not file_obj:
-            return JsonResponse(
-                {"status": "error", "message": "file is required"},
-                status=400
-            )
-        if file_obj.size > MAX_FILE_SIZE:
-            return JsonResponse(
-                {"status": "error", "message": "File size exceeds 32 MB limit."},
-                status=400
+    if not file_obj:
+        return JsonResponse(
+            {"status": "error", "message": "file is required"},
+            status=400
         )
-        # 1. Calculate MD5
-        file_md5 = calculate_md5(file_obj)
-        file_obj.seek(0)
-
-        # 2. Check whether the physical file already exists in the database (Second Transfer Core)
-        file_content = FileContent.objects.filter(hash_code=file_md5).first()
-        is_instant = file_content is not None
-
-        if not file_content:
-            # If not, create and physically save the file
-            file_content = FileContent.objects.create(
-                hash_code=file_md5,
-                file_obj=file_obj,
-                size=file_obj.size
-            )
-
-        # 3. Regardless of whether it is uploaded instantly or not, a new "extraction code" will be generated for this upload.
-        share_code = str(uuid.uuid4())[:6]  # Generate 6-digit random code
-        while ShareItem.objects.filter(code=share_code).exists():
-            share_code = uuid.uuid4().hex[:6]
-
-        share_item= ShareItem.objects.create(
-            owner=request.user,
-            file_content=file_content,
-            code=share_code,
-            original_name=file_obj.name,
-            # Other fields such as expire_at can be set here
+    if file_obj.size > MAX_FILE_SIZE:
+        return JsonResponse(
+            {"status": "error", "message": "File size exceeds 32 MB limit."},
+            status=400
         )
-        # download short urls
-        download_url = request.build_absolute_uri(
-            reverse("download_file", kwargs={"code": share_code})
+    # 1. Calculate MD5
+    file_md5 = calculate_md5(file_obj)
+    file_obj.seek(0)
+
+    # 2. Check whether the physical file already exists in the database (Second Transfer Core)
+    file_content = FileContent.objects.filter(hash_code=file_md5).first()
+    is_instant = file_content is not None
+
+    if not file_content:
+        # If not, create and physically save the file
+        file_content = FileContent.objects.create(
+            hash_code=file_md5,
+            file_obj=file_obj,
+            size=file_obj.size
         )
-        return JsonResponse({
-            'status': 'success',
-            'share_code': share_code,
-            'is_instant': is_instant,  # Tell the front end whether the transmission is instantaneous
-            "download_url": download_url,
-            "expire_at": share_item.expire_at.isoformat(),
-        })
+
+    # 3. Regardless of whether it is uploaded instantly or not, a new "extraction code" will be generated for this upload.
+    share_code = str(uuid.uuid4())[:6]  # Generate 6-digit random code
+    while ShareItem.objects.filter(code=share_code).exists():
+        share_code = uuid.uuid4().hex[:6]
+
+    share_item = ShareItem.objects.create(
+        owner=request.user,
+        file_content=file_content,
+        code=share_code,
+        original_name=file_obj.name,
+    )
+    # download short urls
+    download_url = request.build_absolute_uri(
+        reverse("download_file", kwargs={"code": share_code})
+    )
+    return JsonResponse({
+        'status': 'success',
+        'share_code': share_code,
+        'is_instant': is_instant,
+        "download_url": download_url,
+        "expire_at": share_item.expire_at.isoformat(),
+    })
 def download_file(request, code: str):
     if not request.user.is_authenticated:
         messages.error(request, 'Please log in to download files.')
