@@ -95,7 +95,7 @@ def upload_file(request):
         while ShareItem.objects.filter(code=share_code).exists():
             share_code = uuid.uuid4().hex[:6]
 
-        ShareItem.objects.create(
+        share_item= ShareItem.objects.create(
             file_content=file_content,
             code=share_code,
             original_name=file_obj.name,
@@ -109,7 +109,8 @@ def upload_file(request):
             'status': 'success',
             'share_code': share_code,
             'is_instant': is_instant,  # Tell the front end whether the transmission is instantaneous
-            "download_url": download_url
+            "download_url": download_url,
+            "expire_at": share_item.expire_at.isoformat(),
         })
 
 def download_file(request, code: str):

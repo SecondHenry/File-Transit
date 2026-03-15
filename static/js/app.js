@@ -30,6 +30,8 @@ function initTransferPage() {
 
     let uploadedFiles = [];
     let lastDownloadUrl = '';
+    let lastExpireAt = '';
+    let timerInterval = null;
     let shareMode = 'qr';
 
     // Login check helper
@@ -145,12 +147,16 @@ function initTransferPage() {
             sendBtn.textContent = 'Send';
             return;
         }
-        const data = await res.json();
+
+        console.log(data.expire_at);
         document.getElementById('shareCode').textContent = data.share_code;
         lastDownloadUrl = data.download_url;
+        lastExpireAt = data.expire_at;
+
         showState('transferred');
         renderShareVisual();
-        startTimer();
+        startTimer(lastExpireAt);
+
         sendBtn.disabled = false;
         sendBtn.textContent = 'Send';
     });
@@ -159,6 +165,15 @@ function initTransferPage() {
     backBtn.addEventListener('click', () => {
         uploadedFiles = [];
         fileList.innerHTML = '';
+        lastDownloadUrl = '';
+        lastExpireAt = '';
+
+        if (timerInterval) {
+        clearInterval(timerInterval);
+        timerInterval = null;
+        }
+
+        document.getElementById('timeRemaining').textContent = 'Expires in 10:00';
         showState('initial');
     });
 
@@ -178,7 +193,7 @@ function initTransferPage() {
     // Receive button
     receiveBtn.addEventListener('click', async () => {
         if (!requireAuth('Please log in to download files.')) return;
-        const code = document.getElementById('receiveCode').value.trim();
+        const code = document.getElementById('receiveCode').value.trim().toLowerCase();
         if (!code) return;
         const res = await fetch('/d/' + code + '/');
         if (!res.ok) {
@@ -219,20 +234,34 @@ function initTransferPage() {
         document.getElementById('sendTransferred').classList.toggle('hidden', state !== 'transferred');
     }
 
-    function startTimer() {
-        let seconds = 600; // 10 minutes
+    function startTimer(expireAt) {
         const timerEl = document.getElementById('timeRemaining');
-        const interval = setInterval(() => {
-            seconds--;
-            if (seconds <= 0) {
-                clearInterval(interval);
+
+        if (timerInterval) {
+            clearInterval(timerInterval);
+            timerInterval = null;
+        }
+
+        function updateTimer() {
+            const expireTime = new Date(expireAt).getTime();
+            const now = Date.now();
+            const diffMs = expireTime - now;
+
+            if (diffMs <= 0) {
                 timerEl.textContent = 'Expired';
+                clearInterval(timerInterval);
+                timerInterval = null;
                 return;
             }
-            const m = Math.floor(seconds / 60);
-            const s = seconds % 60;
+
+            const totalSeconds = Math.floor(diffMs / 1000);
+            const m = Math.floor(totalSeconds / 60);
+            const s = totalSeconds % 60;
             timerEl.textContent = `Expires in ${m}:${s.toString().padStart(2, '0')}`;
-        }, 1000);
+        }
+
+        updateTimer();
+        timerInterval = setInterval(updateTimer, 1000);
     }
 
     // ========== Auth Toggle (Login / Signup) ==========
@@ -435,6 +464,3 @@ function formatSize(bytes) {
     return (bytes / (1024 * 1024 * 1024)).toFixed(1) + ' GB';
 }
 
-function generateCode() {
-    return Math.floor(100000 + Math.random() * 900000).toString();
-}

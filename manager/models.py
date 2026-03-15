@@ -7,7 +7,7 @@ from django.utils import timezone
 
 # Create your models here.
 def default_expire_at():
-    return timezone.now() + datetime.timedelta(days=7)
+    return timezone.now() + datetime.timedelta(minutes=10)
 
 
 class FileContent(models.Model):
