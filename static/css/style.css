@@ -317,8 +317,9 @@ body {
     align-items: center;
     justify-content: center;
     background-image:
-        repeating-conic-gradient(var(--text) 0% 25%, transparent 0% 50%)
-        50% / 12px 12px;
+        repeating-conic-gradient(var(--text) 0% 25%, transparent 0% 50%);
+        background-position: 50%;
+        background-size: 12px 12px;
 }
 
 .qr-placeholder p {
@@ -746,5 +747,14 @@ body {
     .file-table th:nth-child(4),
     .file-table td:nth-child(4) {
         display: none;
+    }
+    .status.available {
+    color: #2ecc71;
+    font-weight: 600;
+    }
+
+    .status.expired {
+        color: #95a5a6;
+        font-weight: 600;
     }
 }
