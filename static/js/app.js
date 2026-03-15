@@ -206,14 +206,9 @@ function initTransferPage() {
 
     // Receive button
     receiveBtn.addEventListener('click', async () => {
-        if (!requireAuth('Please log in to download files.')) return;
         const code = document.getElementById('receiveCode').value.trim().toLowerCase();
         if (!code) return;
-        const res = await fetch('/d/' + code + '/');
-        if (!res.ok) {
-            alert('INVALID');
-            return;
-        }
+    
         window.location.href = '/d/' + code + '/';
     });
 
@@ -416,12 +411,51 @@ function initHistoryPage() {
     }
 
     // Download selected files
-    document.getElementById('downloadBtn').addEventListener('click', () => {
-        const selected = document.querySelectorAll('.file-row.selected');
-        selected.forEach(row => {
-            if (row.dataset.url) window.open(row.dataset.url, '_blank');
-        });
+    document.getElementById('downloadBtn').addEventListener('click', async () => {
+    const selected = document.querySelector('.file-row.selected');
+    if (!selected) return;
+
+    const statusText = selected.querySelector('.status')?.textContent.trim();
+    if (statusText === 'Expired') {
+        alert('This file has expired.');
+        return;
+    }
+
+    const shareId = selected.dataset.id;
+    if (!shareId) {
+        alert('Missing record id.');
+        return;
+    }
+
+    const csrftoken = getCookie('csrftoken');
+
+    const res = await fetch('/api/history/download/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrftoken,
+        },
+        body: JSON.stringify({ id: shareId }),
     });
+
+    if (!res.ok) {
+        const result = await res.json().catch(() => null);
+        alert(result?.detail || 'Download failed.');
+        return;
+    }
+
+    const blob = await res.blob();
+    const url = window.URL.createObjectURL(blob);
+
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = selected.dataset.name || 'download';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+
+    window.URL.revokeObjectURL(url);
+});
 
     // Delete (frontend only, no backend API)
     document.getElementById('deleteBtn').addEventListener('click', async () => {
