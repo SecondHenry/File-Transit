@@ -302,18 +302,24 @@ function initTransferPage() {
 
     // Handle resend from history page
     const params = new URLSearchParams(window.location.search);
-    const resendUrl = params.get('resend_url');
-    const resendName = params.get('resend_name');
-    if (resendUrl && resendName) {
-        fetch(resendUrl)
-            .then(res => res.blob())
-            .then(blob => {
-                const file = new File([blob], resendName, { type: blob.type });
-                uploadedFiles = [file];
-                renderFileList();
-                showState('uploaded');
-            });
-        // Clean URL params
+    const resentCode = params.get('resent_code');
+    const resentUrl = params.get('resent_url');
+    const resentName = params.get('resent_name');
+    const resentExpireAt = params.get('resent_expire_at');
+
+    console.log('resentCode:', resentCode);
+    console.log('resentUrl:', resentUrl);
+    console.log('resentExpireAt:', resentExpireAt);
+
+    if (resentCode && resentUrl && resentExpireAt) {
+        document.getElementById('shareCode').textContent = resentCode;
+        lastDownloadUrl = resentUrl;
+        lastExpireAt = resentExpireAt;
+
+        showState('transferred');
+        renderShareVisual();
+        startTimer(lastExpireAt);
+
         window.history.replaceState({}, '', '/');
     }
 
@@ -453,23 +459,93 @@ function initHistoryPage() {
     updateActionButtons();
 });
 
-
-    document.getElementById('renameBtn').addEventListener('click', () => {
-        const selected = document.querySelector('.file-row.selected');
-        if (selected) {
-            const nameCell = selected.querySelector('.file-name');
-            const newName = prompt('Rename file:', nameCell.textContent);
-            if (newName) nameCell.textContent = newName;
-        }
-    });
-
-    document.getElementById('resendBtn').addEventListener('click', () => {
+    document.getElementById('renameBtn').addEventListener('click', async () => {
         const selected = document.querySelector('.file-row.selected');
         if (!selected) return;
-        const url = selected.dataset.url;
-        const name = selected.dataset.name;
-        window.location.href = '/?resend_url=' + encodeURIComponent(url) + '&resend_name=' + encodeURIComponent(name);
+
+        const shareId = selected.dataset.id;
+        if (!shareId) {
+            alert('Missing record id.');
+            return;
+        }
+
+        const nameCell = selected.querySelector('.file-name');
+        const currentName = nameCell.textContent.trim();
+        const newName = prompt('Rename file:', currentName);
+
+        if (!newName) return;
+
+        const trimmedName = newName.trim();
+        if (!trimmedName) {
+            alert('File name cannot be empty.');
+            return;
+        }
+
+        const csrftoken = getCookie('csrftoken');
+
+        const res = await fetch('/api/history/rename/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrftoken,
+            },
+            body: JSON.stringify({
+                id: shareId,
+                name: trimmedName,
+            }),
+        });
+
+        const result = await res.json().catch(() => null);
+        console.log('rename response:', res.status, result);
+
+        if (!res.ok) {
+            alert(result?.detail || 'Rename failed.');
+            return;
+        }
+
+        nameCell.textContent = result.name;
+        selected.dataset.name = result.name;
     });
+
+    //resend button
+    document.getElementById('resendBtn').addEventListener('click', async () => {
+    const selected = document.querySelector('.file-row.selected');
+    if (!selected) return;
+
+    const shareId = selected.dataset.id;
+    if (!shareId) {
+        alert('Missing record id.');
+        return;
+    }
+
+    const csrftoken = getCookie('csrftoken');
+
+    const res = await fetch('/api/history/resend/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrftoken,
+        },
+        body: JSON.stringify({ id: shareId }),
+    });
+
+    const result = await res.json().catch(() => null);
+    console.log('resend response:', res.status, result);
+
+    if (!res.ok) {
+        alert(result?.detail || 'Resend failed.');
+        return;
+    }
+
+    const params = new URLSearchParams({
+        resent_code: result.share_code,
+        resent_url: result.download_url,
+        resent_name: result.name,
+        resent_expire_at: result.expire_at,
+    });
+
+    window.location.href = '/?' + params.toString();
+});
 
     // Filter buttons
     function bindFilterEvents() {
