@@ -11,6 +11,7 @@ from django.views.decorators.csrf import csrf_exempt  # @use for dev test
 from django.views.decorators.http import require_POST  # @use for dev test
 from urllib.parse import urlencode
 from django.urls import reverse
+from django.contrib.auth.decorators import login_required
 
 # Create your views here.
 
@@ -104,6 +105,7 @@ def auth_required(request):
 
 @csrf_exempt # @use for dev test
 @require_POST # @use for dev test
+@login_required
 def upload_file(request):
     if request.method == 'POST':
         file_obj = request.FILES.get('file')
@@ -153,7 +155,7 @@ def upload_file(request):
             "expire_at": share_item.expire_at.isoformat(),
             "is_available": share_item.file_content.retention_until > timezone.now()
         })
-
+@login_required
 def download_file(request, code: str):
     share = ShareItem.objects.select_related("file_content").filter(code=code).first()
     if not share:
@@ -168,3 +170,124 @@ def download_file(request, code: str):
         raise Http404("File not found")
 
     return FileResponse(open(file_field.path, "rb"), as_attachment=True, filename=share.original_name)
+
+@require_POST
+def rename_history_item(request):
+    if not request.user.is_authenticated:
+        return JsonResponse({"detail": "Authentication required"}, status=401)
+
+    try:
+        data = json.loads(request.body)
+        share_id = data.get("id")
+        new_name = (data.get("name") or "").strip()
+    except Exception:
+        return JsonResponse({"detail": "Invalid request body"}, status=400)
+
+    if not share_id:
+        return JsonResponse({"detail": "Missing id"}, status=400)
+
+    if not new_name:
+        return JsonResponse({"detail": "Missing name"}, status=400)
+
+    share = ShareItem.objects.filter(id=share_id, owner=request.user).first()
+    if not share:
+        return JsonResponse({"detail": "Not found"}, status=404)
+
+    share.original_name = new_name
+    share.save(update_fields=["original_name"])
+
+    return JsonResponse({
+        "status": "success",
+        "name": new_name
+    })
+
+@require_POST
+def resend_history_item(request):
+    if not request.user.is_authenticated:
+        return JsonResponse({"detail": "Authentication required"}, status=401)
+
+    try:
+        data = json.loads(request.body)
+        share_id = data.get("id")
+    except Exception:
+        return JsonResponse({"detail": "Invalid request body"}, status=400)
+
+    if not share_id:
+        return JsonResponse({"detail": "Missing id"}, status=400)
+
+    old_share = ShareItem.objects.select_related("file_content").filter(
+        id=share_id,
+        owner=request.user
+    ).first()
+
+    if not old_share:
+        return JsonResponse({"detail": "Not found"}, status=404)
+
+    file_content = old_share.file_content
+    if not file_content:
+        return JsonResponse({"detail": "File not found"}, status=404)
+
+    if file_content.retention_until <= timezone.now():
+        return JsonResponse({"detail": "File expired"}, status=410)
+
+    share_code = uuid.uuid4().hex[:6]
+    while ShareItem.objects.filter(code=share_code).exists():
+        share_code = uuid.uuid4().hex[:6]
+
+    new_share = ShareItem.objects.create(
+        owner=request.user,
+        file_content=file_content,
+        code=share_code,
+        original_name=old_share.original_name,
+    )
+
+    download_url = request.build_absolute_uri(
+        reverse("download_file", kwargs={"code": share_code})
+    )
+
+    return JsonResponse({
+        "status": "success",
+        "share_code": new_share.code,
+        "download_url": download_url,
+        "expire_at": new_share.expire_at.isoformat(),
+        "name": new_share.original_name,
+    })
+
+@require_POST
+def download_history_item(request):
+    if not request.user.is_authenticated:
+        return JsonResponse({"detail": "Authentication required"}, status=401)
+
+    try:
+        data = json.loads(request.body)
+        share_id = data.get("id")
+    except Exception:
+        return JsonResponse({"detail": "Invalid request body"}, status=400)
+
+    if not share_id:
+        return JsonResponse({"detail": "Missing id"}, status=400)
+
+    share = ShareItem.objects.select_related("file_content").filter(
+        id=share_id,
+        owner=request.user
+    ).first()
+
+    if not share:
+        return JsonResponse({"detail": "Not found"}, status=404)
+
+    file_content = share.file_content
+    if not file_content:
+        return JsonResponse({"detail": "File not found"}, status=404)
+
+    if file_content.retention_until <= timezone.now():
+        return JsonResponse({"detail": "File expired"}, status=410)
+
+    file_field = file_content.file_obj
+    if not file_field or not os.path.exists(file_field.path):
+        return JsonResponse({"detail": "File missing on disk"}, status=404)
+
+    return FileResponse(
+        open(file_field.path, "rb"),
+        as_attachment=True,
+        filename=share.original_name
+    )
