@@ -1,4 +1,4 @@
-from .models import FileContent, ShareItem
+from .models import FileContent, ShareItem,DownloadRecord
 from .utils import calculate_md5
 import uuid
 import os
@@ -31,7 +31,7 @@ def history_page(request):
 def history_api(request):
     if not request.user.is_authenticated:
         return JsonResponse({"detail": "Authentication required"}, status=401)
-
+    # ---------- Sent records ----------
     shares = (
         ShareItem.objects
         .select_related("file_content")
@@ -39,7 +39,7 @@ def history_api(request):
         .order_by("-created_at")[:200]
     )
 
-    items = []
+    sent_items = []
 
     for s in shares:
         name = s.original_name or ""
@@ -52,7 +52,7 @@ def history_api(request):
                 and file_content.retention_until > timezone.now()
         )
 
-        items.append({
+        sent_items.append({
             "id": s.id,
             "code": s.code,
             "name": name,
@@ -65,6 +65,46 @@ def history_api(request):
             "is_available": is_available,
             "retention_until": file_content.retention_until.isoformat() if file_content and file_content.retention_until else None,
         })
+
+    # ---------- Received records ----------
+    downloads = (
+        DownloadRecord.objects
+        .select_related("share_item", "share_item__file_content")
+        .filter(owner=request.user)
+        .order_by("-downloaded_at")[:200]
+    )
+
+    received_items = []
+
+    for d in downloads:
+        share = d.share_item
+        file_content = share.file_content if share else None
+        name = share.original_name if share else ""
+
+        received_items.append({
+            "id": f"r-{d.id}",
+            "record_id": d.id,
+            "code": share.code if share else "",
+            "name": name,
+            "size": file_content.size if file_content else 0,
+            "created_at": d.downloaded_at.isoformat(),
+            "type": "Received",
+            "download_url": request.build_absolute_uri(
+                reverse("download_file", kwargs={"code": share.code})
+            ) if share else "",
+            "is_available": False,
+            "retention_until": (
+                file_content.retention_until.isoformat()
+                if file_content and file_content.retention_until else None
+            ),
+            "file_content_id": file_content.id if file_content else None,
+        })
+
+    # ---------- Merge and sort ----------
+    items = sent_items + received_items
+    items.sort(key=lambda x: x["created_at"], reverse=True)
+
+    # ---------- Usage ----------
     file_ids = (
         ShareItem.objects
         .filter(owner=request.user)
@@ -79,6 +119,7 @@ def history_api(request):
                  )["total"] or 0
 
     limit_bytes = 1 * 1024 * 1024 * 1024  # 1 GB
+
     return JsonResponse({
         "items": items,
         "usage": {
@@ -201,6 +242,12 @@ def download_file(request, code: str):
     file_field = share.file_content.file_obj
     if not file_field or not os.path.exists(file_field.path):
         raise Http404("File not found")
+
+    if request.user.is_authenticated:
+        DownloadRecord.objects.create(
+            owner=request.user,
+            share_item=share
+        )
 
     return FileResponse(open(file_field.path, "rb"), as_attachment=True, filename=share.original_name)
 
