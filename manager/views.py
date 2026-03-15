@@ -68,6 +68,7 @@ def history_api(request):
 
     return JsonResponse({"items": items})
 
+@csrf_exempt
 @require_POST
 def delete_history_item(request):
     if not request.user.is_authenticated:
