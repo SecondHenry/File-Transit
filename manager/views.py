@@ -238,11 +238,13 @@ def download_file(request, code: str):
 
     share = ShareItem.objects.select_related("file_content").filter(code=code).first()
     if not share:
-        raise Http404("Invalid code")
+        messages.error(request, 'Invalid code. Please check and try again.')
+        return redirect('transfer')
 
     # Expiration check (if you have expire_at in your model)
     if getattr(share, "expire_at", None) and timezone.now() > share.expire_at:
-        raise Http404("Code expired")
+        messages.error(request, 'This share code has expired.')
+        return redirect('transfer')
 
     file_field = share.file_content.file_obj
     if not file_field or not os.path.exists(file_field.path):

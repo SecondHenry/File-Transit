@@ -101,6 +101,10 @@ function initTransferPage() {
             alert('Only single file upload is supported.');
             return;
         }
+        if (files[0].size === 0 && files[0].type === '') {
+            alert('Folder upload is not supported. Please select a file.');
+            return;
+        }
         if (files[0].size > MAX_FILE_SIZE) {
             alert('File size exceeds 32 MB limit.');
             return;
