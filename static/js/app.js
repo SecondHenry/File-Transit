@@ -39,7 +39,7 @@ function initTransferPage() {
         if (!IS_AUTHENTICATED) {
             const authArea = document.getElementById('authArea');
             if (authArea) {
-                authArea.scrollIntoView({ behavior: 'smooth' });
+                authArea.scrollIntoView({behavior: 'smooth'});
                 authArea.style.outline = '2px solid #e74c3c';
                 setTimeout(() => authArea.style.outline = '', 2000);
                 if (msg) {
@@ -64,8 +64,12 @@ function initTransferPage() {
     }
 
     // Upload button click
-    uploadBtn.addEventListener('click', () => { if (requireAuth('Please log in to upload files.')) fileInput.click(); });
-    addMoreBtn.addEventListener('click', () => { if (requireAuth('Please log in to upload files.')) fileInput.click(); });
+    uploadBtn.addEventListener('click', () => {
+        if (requireAuth('Please log in to upload files.')) fileInput.click();
+    });
+    addMoreBtn.addEventListener('click', () => {
+        if (requireAuth('Please log in to upload files.')) fileInput.click();
+    });
 
     // File input change
     fileInput.addEventListener('change', (e) => {
@@ -149,7 +153,11 @@ function initTransferPage() {
                 body: formData
             });
 
-            const data = await res.json();
+            const data = await res.json().catch(() => null);
+            if (!res.ok) {
+                alert(data.message || 'Upload failed');
+                return;
+            }
 
             console.log(data.expire_at);
             console.log('upload response:', data);
@@ -183,8 +191,8 @@ function initTransferPage() {
         lastExpireAt = '';
 
         if (timerInterval) {
-        clearInterval(timerInterval);
-        timerInterval = null;
+            clearInterval(timerInterval);
+            timerInterval = null;
         }
 
         document.getElementById('timeRemaining').textContent = 'Expires in 10:00';
@@ -208,7 +216,7 @@ function initTransferPage() {
     receiveBtn.addEventListener('click', async () => {
         const code = document.getElementById('receiveCode').value.trim().toLowerCase();
         if (!code) return;
-    
+
         window.location.href = '/d/' + code + '/';
     });
 
@@ -324,14 +332,32 @@ function initTransferPage() {
         fetch('/api/history/')
             .then(res => res.json())
             .then(data => {
-                if (!data.items || data.items.length === 0) return;
-                recentFiles.innerHTML = '';
-                data.items.slice(0, 3).forEach(item => {
-                    const div = document.createElement('div');
-                    div.className = 'recent-file-item';
-                    div.innerHTML = `<span class="recent-file-name">${item.name}</span><span class="recent-file-size">${formatSize(item.size)}</span>`;
-                    recentFiles.appendChild(div);
-                });
+                if (data.items && data.items.length > 0) {
+                    recentFiles.innerHTML = '';
+                    data.items.slice(0, 3).forEach(item => {
+                        const div = document.createElement('div');
+                        div.className = 'recent-file-item';
+                        div.innerHTML = `<span class="recent-file-name">${item.name}</span><span class="recent-file-size">${formatSize(item.size)}</span>`;
+                        recentFiles.appendChild(div);
+                    });
+                }
+                if (data.usage) {
+                    const usedBytes = data.usage.used_bytes || 0;
+                    const limitBytes = data.usage.limit_bytes || 1;
+
+                    const percent = Math.min(100, (usedBytes / limitBytes) * 100);
+
+                    const usageFill = document.querySelector('.usage-fill');
+                    const usageText = document.querySelector('.usage-text');
+
+                    if (usageFill) {
+                        usageFill.style.width = `${percent}%`;
+                    }
+
+                    if (usageText) {
+                        usageText.textContent = `${formatSize(usedBytes)} / ${formatSize(limitBytes)}`;
+                    }
+                }
             });
     }
 }
@@ -488,9 +514,13 @@ function initHistoryPage() {
         alert('Delete failed.');
         return;
     }
-
-    selected.remove();
-    updateActionButtons();
+    if (!res.ok) {
+    const errText = await res.text();
+    console.error('Delete failed:', errText);
+    alert('Delete failed.');
+    return;
+}
+    window.location.reload();
 });
 
     document.getElementById('renameBtn').addEventListener('click', async () => {
