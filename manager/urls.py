@@ -14,6 +14,9 @@ urlpatterns = [
     path('api/history/', views.history_api, name='history_api'), # history
     path("api/upload/", views.upload_file, name="upload_file"),
     path("api/history/delete/", views.delete_history_item, name="delete_history_item"),
+    path("api/history/rename/", views.rename_history_item, name="rename_history_item"),
+    path("api/history/resend/", views.resend_history_item, name="resend_history_item"),
+    path("api/history/download/", views.download_history_item, name="download_history_item"),
 
     # download
     path("api/download/<str:code>/", views.download_file, name="download_file_api"),
