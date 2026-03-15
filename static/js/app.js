@@ -136,29 +136,43 @@ function initTransferPage() {
     sendBtn.addEventListener('click', async () => {
         if (!requireAuth('Please log in to send files.')) return;
         if (uploadedFiles.length === 0) return;
+
         sendBtn.disabled = true;
         sendBtn.textContent = 'Uploading...';
-        const formData = new FormData();
-        formData.append('file', uploadedFiles[0]);
-        const res = await fetch('/api/upload/', { method: 'POST', body: formData });
-        if (!res.ok) {
+
+        try {
+            const formData = new FormData();
+            formData.append('file', uploadedFiles[0]);
+
+            const res = await fetch('/api/upload/', {
+                method: 'POST',
+                body: formData
+            });
+
+            const data = await res.json();
+
+            console.log(data.expire_at);
+            console.log('upload response:', data);
+
+            if (!res.ok) {
+                alert(data.message || 'Upload failed');
+                return;
+            }
+
+            document.getElementById('shareCode').textContent = data.share_code;
+            lastDownloadUrl = data.download_url;
+            lastExpireAt = data.expire_at;
+
+            showState('transferred');
+            renderShareVisual();
+            startTimer(lastExpireAt);
+        } catch (err) {
+            console.error('Upload error:', err);
             alert('Upload failed');
+        } finally {
             sendBtn.disabled = false;
             sendBtn.textContent = 'Send';
-            return;
         }
-
-        console.log(data.expire_at);
-        document.getElementById('shareCode').textContent = data.share_code;
-        lastDownloadUrl = data.download_url;
-        lastExpireAt = data.expire_at;
-
-        showState('transferred');
-        renderShareVisual();
-        startTimer(lastExpireAt);
-
-        sendBtn.disabled = false;
-        sendBtn.textContent = 'Send';
     });
 
     // Back button
@@ -344,6 +358,7 @@ function initHistoryPage() {
                 const status = item.is_available ? 'Available' : 'Expired';
 
                 tr.className = 'file-row';
+                tr.dataset.id = item.id;
                 tr.dataset.url = item.download_url;
                 tr.dataset.name = item.name;
                 tr.dataset.type = 'Sent';
@@ -403,11 +418,41 @@ function initHistoryPage() {
     });
 
     // Delete (frontend only, no backend API)
-    document.getElementById('deleteBtn').addEventListener('click', () => {
-        const selected = document.querySelectorAll('.file-row.selected');
-        selected.forEach(row => row.remove());
-        updateActionButtons();
-    });
+    document.getElementById('deleteBtn').addEventListener('click', async () => {
+        const selected = document.querySelector('.file-row.selected');
+        if (!selected) return;
+
+        const shareId = selected.dataset.id;
+        if (!shareId) {
+            alert('Missing record id.');
+            return;
+        }
+
+        const confirmed = confirm('Delete this history record?');
+        if (!confirmed) return;
+
+        const csrftoken = getCookie('csrftoken');
+
+        const res = await fetch('/api/history/delete/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrftoken,
+            },
+            body: JSON.stringify({ id: shareId }),
+        });
+
+    if (!res.ok) {
+        const errText = await res.text();
+        console.error('Delete failed:', errText);
+        alert('Delete failed.');
+        return;
+    }
+
+    selected.remove();
+    updateActionButtons();
+});
+
 
     document.getElementById('renameBtn').addEventListener('click', () => {
         const selected = document.querySelector('.file-row.selected');
@@ -467,3 +512,17 @@ function formatSize(bytes) {
     return (bytes / (1024 * 1024 * 1024)).toFixed(1) + ' GB';
 }
 
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let cookie of cookies) {
+            cookie = cookie.trim();
+            if (cookie.startsWith(name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}

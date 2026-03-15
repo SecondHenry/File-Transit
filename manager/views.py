@@ -2,6 +2,7 @@ from .models import FileContent, ShareItem
 from .utils import calculate_md5
 import uuid
 import os
+import json
 from django.http import JsonResponse, FileResponse, Http404
 from django.utils import timezone
 from django.shortcuts import render, redirect
@@ -65,6 +66,33 @@ def history_api(request):
         })
 
     return JsonResponse({"items": items})
+
+@require_POST
+def delete_history_item(request):
+    if not request.user.is_authenticated:
+        return JsonResponse({"detail": "Authentication required"}, status=401)
+
+    print("raw body:", request.body)
+
+    try:
+        data = json.loads(request.body)
+        print("parsed data:", data)
+        share_id = data.get("id")
+        print("share_id:", share_id)
+    except Exception as e:
+        print("json error:", e)
+        return JsonResponse({"detail": "Invalid request body"}, status=400)
+
+    if not share_id:
+        return JsonResponse({"detail": "Missing id"}, status=400)
+
+    share = ShareItem.objects.filter(id=share_id, owner=request.user).first()
+    if not share:
+        return JsonResponse({"detail": "Not found"}, status=404)
+
+    share.delete()
+    return JsonResponse({"status": "success"})
+
 def help_page(request):
     return render(request, 'help.html', {'active_page': 'help'})
 
