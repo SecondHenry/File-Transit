@@ -30,6 +30,8 @@ function initTransferPage() {
 
     let uploadedFiles = [];
     let lastDownloadUrl = '';
+    let lastExpireAt = '';
+    let timerInterval = null;
     let shareMode = 'qr';
 
     // Login check helper
@@ -134,31 +136,58 @@ function initTransferPage() {
     sendBtn.addEventListener('click', async () => {
         if (!requireAuth('Please log in to send files.')) return;
         if (uploadedFiles.length === 0) return;
+
         sendBtn.disabled = true;
         sendBtn.textContent = 'Uploading...';
-        const formData = new FormData();
-        formData.append('file', uploadedFiles[0]);
-        const res = await fetch('/api/upload/', { method: 'POST', body: formData });
-        if (!res.ok) {
+
+        try {
+            const formData = new FormData();
+            formData.append('file', uploadedFiles[0]);
+
+            const res = await fetch('/api/upload/', {
+                method: 'POST',
+                body: formData
+            });
+
+            const data = await res.json();
+
+            console.log(data.expire_at);
+            console.log('upload response:', data);
+
+            if (!res.ok) {
+                alert(data.message || 'Upload failed');
+                return;
+            }
+
+            document.getElementById('shareCode').textContent = data.share_code;
+            lastDownloadUrl = data.download_url;
+            lastExpireAt = data.expire_at;
+
+            showState('transferred');
+            renderShareVisual();
+            startTimer(lastExpireAt);
+        } catch (err) {
+            console.error('Upload error:', err);
             alert('Upload failed');
+        } finally {
             sendBtn.disabled = false;
             sendBtn.textContent = 'Send';
-            return;
         }
-        const data = await res.json();
-        document.getElementById('shareCode').textContent = data.share_code;
-        lastDownloadUrl = data.download_url;
-        showState('transferred');
-        renderShareVisual();
-        startTimer();
-        sendBtn.disabled = false;
-        sendBtn.textContent = 'Send';
     });
 
     // Back button
     backBtn.addEventListener('click', () => {
         uploadedFiles = [];
         fileList.innerHTML = '';
+        lastDownloadUrl = '';
+        lastExpireAt = '';
+
+        if (timerInterval) {
+        clearInterval(timerInterval);
+        timerInterval = null;
+        }
+
+        document.getElementById('timeRemaining').textContent = 'Expires in 10:00';
         showState('initial');
     });
 
@@ -178,7 +207,7 @@ function initTransferPage() {
     // Receive button
     receiveBtn.addEventListener('click', async () => {
         if (!requireAuth('Please log in to download files.')) return;
-        const code = document.getElementById('receiveCode').value.trim();
+        const code = document.getElementById('receiveCode').value.trim().toLowerCase();
         if (!code) return;
         const res = await fetch('/d/' + code + '/');
         if (!res.ok) {
@@ -219,20 +248,34 @@ function initTransferPage() {
         document.getElementById('sendTransferred').classList.toggle('hidden', state !== 'transferred');
     }
 
-    function startTimer() {
-        let seconds = 600; // 10 minutes
+    function startTimer(expireAt) {
         const timerEl = document.getElementById('timeRemaining');
-        const interval = setInterval(() => {
-            seconds--;
-            if (seconds <= 0) {
-                clearInterval(interval);
+
+        if (timerInterval) {
+            clearInterval(timerInterval);
+            timerInterval = null;
+        }
+
+        function updateTimer() {
+            const expireTime = new Date(expireAt).getTime();
+            const now = Date.now();
+            const diffMs = expireTime - now;
+
+            if (diffMs <= 0) {
                 timerEl.textContent = 'Expired';
+                clearInterval(timerInterval);
+                timerInterval = null;
                 return;
             }
-            const m = Math.floor(seconds / 60);
-            const s = seconds % 60;
+
+            const totalSeconds = Math.floor(diffMs / 1000);
+            const m = Math.floor(totalSeconds / 60);
+            const s = totalSeconds % 60;
             timerEl.textContent = `Expires in ${m}:${s.toString().padStart(2, '0')}`;
-        }, 1000);
+        }
+
+        updateTimer();
+        timerInterval = setInterval(updateTimer, 1000);
     }
 
     // ========== Auth Toggle (Login / Signup) ==========
@@ -312,7 +355,10 @@ function initHistoryPage() {
             }
             data.items.forEach(item => {
                 const tr = document.createElement('tr');
+                const status = item.is_available ? 'Available' : 'Expired';
+
                 tr.className = 'file-row';
+                tr.dataset.id = item.id;
                 tr.dataset.url = item.download_url;
                 tr.dataset.name = item.name;
                 tr.dataset.type = 'Sent';
@@ -322,6 +368,7 @@ function initHistoryPage() {
                     <td>${formatSize(item.size)}</td>
                     <td>${new Date(item.created_at).toLocaleDateString()}</td>
                     <td>${tr.dataset.type}</td>
+                    <td class="status ${item.is_available ? 'active' : 'expired'}">${status}</td>
                 `;
                 tableBody.appendChild(tr);
             });
@@ -371,11 +418,41 @@ function initHistoryPage() {
     });
 
     // Delete (frontend only, no backend API)
-    document.getElementById('deleteBtn').addEventListener('click', () => {
-        const selected = document.querySelectorAll('.file-row.selected');
-        selected.forEach(row => row.remove());
-        updateActionButtons();
-    });
+    document.getElementById('deleteBtn').addEventListener('click', async () => {
+        const selected = document.querySelector('.file-row.selected');
+        if (!selected) return;
+
+        const shareId = selected.dataset.id;
+        if (!shareId) {
+            alert('Missing record id.');
+            return;
+        }
+
+        const confirmed = confirm('Delete this history record?');
+        if (!confirmed) return;
+
+        const csrftoken = getCookie('csrftoken');
+
+        const res = await fetch('/api/history/delete/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrftoken,
+            },
+            body: JSON.stringify({ id: shareId }),
+        });
+
+    if (!res.ok) {
+        const errText = await res.text();
+        console.error('Delete failed:', errText);
+        alert('Delete failed.');
+        return;
+    }
+
+    selected.remove();
+    updateActionButtons();
+});
+
 
     document.getElementById('renameBtn').addEventListener('click', () => {
         const selected = document.querySelector('.file-row.selected');
@@ -435,6 +512,17 @@ function formatSize(bytes) {
     return (bytes / (1024 * 1024 * 1024)).toFixed(1) + ' GB';
 }
 
-function generateCode() {
-    return Math.floor(100000 + Math.random() * 900000).toString();
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let cookie of cookies) {
+            cookie = cookie.trim();
+            if (cookie.startsWith(name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
 }

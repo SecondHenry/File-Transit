@@ -2,6 +2,7 @@ from .models import FileContent, ShareItem
 from .utils import calculate_md5
 import uuid
 import os
+import json
 from django.http import JsonResponse, FileResponse, Http404
 from django.utils import timezone
 from django.shortcuts import render, redirect
@@ -33,6 +34,7 @@ def history_api(request):
     shares = (
         ShareItem.objects
         .select_related("file_content")
+        .filter(owner=request.user)
         .order_by("-created_at")[:200]
     )
 
@@ -42,19 +44,55 @@ def history_api(request):
         name = s.original_name or ""
         ext = name.rsplit(".", 1)[-1].lower() if "." in name else ""
 
+        file_content = s.file_content
+        is_available = (
+                file_content is not None
+                and file_content.retention_until is not None
+                and file_content.retention_until > timezone.now()
+        )
+
         items.append({
             "id": s.id,
             "code": s.code,
             "name": name,
-            "size": s.file_content.size if s.file_content else 0,
+            "size": file_content.size if file_content else 0,
             "created_at": s.created_at.isoformat(),
             "type": ext,
             "download_url": request.build_absolute_uri(
                 reverse("download_file", kwargs={"code": s.code})
             ),
+            "is_available": is_available,
+            "retention_until": file_content.retention_until.isoformat() if file_content and file_content.retention_until else None,
         })
 
     return JsonResponse({"items": items})
+
+@require_POST
+def delete_history_item(request):
+    if not request.user.is_authenticated:
+        return JsonResponse({"detail": "Authentication required"}, status=401)
+
+    print("raw body:", request.body)
+
+    try:
+        data = json.loads(request.body)
+        print("parsed data:", data)
+        share_id = data.get("id")
+        print("share_id:", share_id)
+    except Exception as e:
+        print("json error:", e)
+        return JsonResponse({"detail": "Invalid request body"}, status=400)
+
+    if not share_id:
+        return JsonResponse({"detail": "Missing id"}, status=400)
+
+    share = ShareItem.objects.filter(id=share_id, owner=request.user).first()
+    if not share:
+        return JsonResponse({"detail": "Not found"}, status=404)
+
+    share.delete()
+    return JsonResponse({"status": "success"})
+
 def help_page(request):
     return render(request, 'help.html', {'active_page': 'help'})
 
@@ -95,7 +133,8 @@ def upload_file(request):
         while ShareItem.objects.filter(code=share_code).exists():
             share_code = uuid.uuid4().hex[:6]
 
-        ShareItem.objects.create(
+        share_item= ShareItem.objects.create(
+            owner=request.user,
             file_content=file_content,
             code=share_code,
             original_name=file_obj.name,
@@ -109,7 +148,9 @@ def upload_file(request):
             'status': 'success',
             'share_code': share_code,
             'is_instant': is_instant,  # Tell the front end whether the transmission is instantaneous
-            "download_url": download_url
+            "download_url": download_url,
+            "expire_at": share_item.expire_at.isoformat(),
+            "is_available": share_item.file_content.retention_until > timezone.now()
         })
 
 def download_file(request, code: str):

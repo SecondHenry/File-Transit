@@ -16,3 +16,4 @@ def get_hash_path(instance, filename):
     # 假设我们在保存前已经把 md5 存进了 instance.hash_code
     h = instance.hash_code
     return os.path.join('uploads', h[:2], h[2:4], h)
+
