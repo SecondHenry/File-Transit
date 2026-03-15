@@ -58,12 +58,13 @@ def history_api(request):
             "name": name,
             "size": file_content.size if file_content else 0,
             "created_at": s.created_at.isoformat(),
-            "type": ext,
+            "type": "sent",
             "download_url": request.build_absolute_uri(
                 reverse("download_file", kwargs={"code": s.code})
             ),
             "is_available": is_available,
             "retention_until": file_content.retention_until.isoformat() if file_content and file_content.retention_until else None,
+            "file_content_id": file_content.id if file_content else None,
         })
 
     # ---------- Received records ----------
@@ -92,7 +93,11 @@ def history_api(request):
             "download_url": request.build_absolute_uri(
                 reverse("download_file", kwargs={"code": share.code})
             ) if share else "",
-            "is_available": False,
+            "is_available": (
+                file_content is not None
+                and file_content.retention_until is not None
+                and file_content.retention_until > timezone.now()
+            ),
             "retention_until": (
                 file_content.retention_until.isoformat()
                 if file_content and file_content.retention_until else None
