@@ -1,3 +1,14 @@
+// ========== Accessible Notification System ==========
+function showNotification(message, type = 'error') {
+    const container = document.getElementById('notificationContainer');
+    if (!container) return;
+    const toast = document.createElement('div');
+    toast.className = 'notification-toast ' + type;
+    toast.textContent = (type === 'error' ? 'Error: ' : 'Success: ') + message;
+    container.appendChild(toast);
+    setTimeout(() => toast.remove(), 5000);
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     // ========== Transfer Page ==========
     const sendInitial = document.getElementById('sendInitial');
@@ -65,10 +76,10 @@ function initTransferPage() {
 
     // Upload button click
     uploadBtn.addEventListener('click', () => {
-        if (requireAuth('Please log in to upload files.')) fileInput.click();
+        if (requireAuth('Please log in to upload.')) fileInput.click();
     });
     addMoreBtn.addEventListener('click', () => {
-        if (requireAuth('Please log in to upload files.')) fileInput.click();
+        if (requireAuth('Please log in to upload.')) fileInput.click();
     });
 
     // File input change
@@ -90,7 +101,7 @@ function initTransferPage() {
     uploadZone.addEventListener('drop', (e) => {
         e.preventDefault();
         uploadZone.classList.remove('drag-over');
-        if (!requireAuth('Please log in to upload files.')) return;
+        if (!requireAuth('Please log in to upload.')) return;
         addFiles(Array.from(e.dataTransfer.files));
     });
 
@@ -98,11 +109,15 @@ function initTransferPage() {
 
     function addFiles(files) {
         if (files.length > 1) {
-            alert('Only single file upload is supported.');
+            showNotification('Only single file upload is supported.');
+            return;
+        }
+        if (files[0].size === 0 && files[0].type === '') {
+            showNotification('Folder upload is not supported. Please select a file.');
             return;
         }
         if (files[0].size > MAX_FILE_SIZE) {
-            alert('File size exceeds 32 MB limit.');
+            showNotification('File size exceeds 32 MB limit.');
             return;
         }
         uploadedFiles = [files[0]];
@@ -118,7 +133,7 @@ function initTransferPage() {
             item.innerHTML = `
                 <span class="file-item-name">${file.name}</span>
                 <span class="file-item-size">${formatSize(file.size)}</span>
-                <button class="file-item-remove" data-index="${i}">&times;</button>
+                <button class="file-item-remove" data-index="${i}" aria-label="Remove file">&times;</button>
             `;
             fileList.appendChild(item);
         });
@@ -138,7 +153,7 @@ function initTransferPage() {
 
     // Send button
     sendBtn.addEventListener('click', async () => {
-        if (!requireAuth('Please log in to send files.')) return;
+        if (!requireAuth('Please log in to send.')) return;
         if (uploadedFiles.length === 0) return;
 
         sendBtn.disabled = true;
@@ -155,15 +170,11 @@ function initTransferPage() {
 
             const data = await res.json().catch(() => null);
             if (!res.ok) {
-                alert(data.message || 'Upload failed');
-                return;
-            }
-
-            console.log(data.expire_at);
-            console.log('upload response:', data);
-
-            if (!res.ok) {
-                alert(data.message || 'Upload failed');
+                if (data?.message === 'quota_exceeded') {
+                    alert('Your storage usage has reached the 1 GB limit. Please contact the administrator to purchase a prime plan.');
+                } else {
+                    showNotification(data?.message || 'Upload failed. Please try again.');
+                }
                 return;
             }
 
@@ -176,7 +187,7 @@ function initTransferPage() {
             startTimer(lastExpireAt);
         } catch (err) {
             console.error('Upload error:', err);
-            alert('Upload failed');
+            showNotification('Upload failed. Please try again.');
         } finally {
             sendBtn.disabled = false;
             sendBtn.textContent = 'Send';
@@ -203,13 +214,17 @@ function initTransferPage() {
     qrBtn.addEventListener('click', () => {
         shareMode = 'qr';
         qrBtn.classList.add('active');
+        qrBtn.setAttribute('aria-pressed', 'true');
         linkBtn.classList.remove('active');
+        linkBtn.setAttribute('aria-pressed', 'false');
     });
 
     linkBtn.addEventListener('click', () => {
         shareMode = 'link';
         linkBtn.classList.add('active');
+        linkBtn.setAttribute('aria-pressed', 'true');
         qrBtn.classList.remove('active');
+        qrBtn.setAttribute('aria-pressed', 'false');
     });
 
     // QR / Link mode selector (after send, in transferred state)
@@ -219,10 +234,14 @@ function initTransferPage() {
     function syncResultToggle() {
         if (shareMode === 'qr') {
             qrBtnResult.classList.add('active');
+            qrBtnResult.setAttribute('aria-pressed', 'true');
             linkBtnResult.classList.remove('active');
+            linkBtnResult.setAttribute('aria-pressed', 'false');
         } else {
             linkBtnResult.classList.add('active');
+            linkBtnResult.setAttribute('aria-pressed', 'true');
             qrBtnResult.classList.remove('active');
+            qrBtnResult.setAttribute('aria-pressed', 'false');
         }
     }
 
@@ -317,14 +336,18 @@ function initTransferPage() {
     if (loginToggle && signupToggle) {
         loginToggle.addEventListener('click', () => {
             loginToggle.classList.add('active');
+            loginToggle.setAttribute('aria-pressed', 'true');
             signupToggle.classList.remove('active');
+            signupToggle.setAttribute('aria-pressed', 'false');
             loginForm.classList.remove('hidden');
             signupForm.classList.add('hidden');
         });
 
         signupToggle.addEventListener('click', () => {
             signupToggle.classList.add('active');
+            signupToggle.setAttribute('aria-pressed', 'true');
             loginToggle.classList.remove('active');
+            loginToggle.setAttribute('aria-pressed', 'false');
             signupForm.classList.remove('hidden');
             loginForm.classList.add('hidden');
         });
@@ -416,8 +439,9 @@ function initHistoryPage() {
                 tr.dataset.url = item.download_url;
                 tr.dataset.name = item.name;
                 tr.dataset.type = item.type;
+                tr.setAttribute('tabindex', '0');
                 tr.innerHTML = `
-                    <td><input type="checkbox" class="file-check"></td>
+                    <td><input type="checkbox" class="file-check" aria-label="Select file ${item.name}"></td>
                     <td class="file-name">${item.name}</td>
                     <td>${formatSize(item.size)}</td>
                     <td>${new Date(item.created_at).toLocaleDateString()}</td>
@@ -455,6 +479,12 @@ function initHistoryPage() {
                 }
                 selectOnly(row);
             });
+            row.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    selectOnly(row);
+                }
+            });
         });
     }
 
@@ -470,13 +500,13 @@ function initHistoryPage() {
 
     const statusText = selected.querySelector('.status')?.textContent.trim();
     if (statusText === 'Expired') {
-        alert('This file has expired.');
+        showNotification('This file has expired.');
         return;
     }
 
     const shareId = selected.dataset.id;
     if (!shareId) {
-        alert('Missing record id.');
+        showNotification('Missing record id.');
         return;
     }
 
@@ -493,7 +523,7 @@ function initHistoryPage() {
 
     if (!res.ok) {
         const result = await res.json().catch(() => null);
-        alert(result?.detail || 'Download failed.');
+        showNotification(result?.detail || 'Download failed.');
         return;
     }
 
@@ -517,7 +547,7 @@ function initHistoryPage() {
 
         const shareId = selected.dataset.id;
         if (!shareId) {
-            alert('Missing record id.');
+            showNotification('Missing record id.');
             return;
         }
 
@@ -538,7 +568,7 @@ function initHistoryPage() {
     if (!res.ok) {
         const errText = await res.text();
         console.error('Delete failed:', errText);
-        alert('Delete failed.');
+        showNotification('Delete failed.');
         return;
     }
     if (!res.ok) {
@@ -556,7 +586,7 @@ function initHistoryPage() {
 
         const shareId = selected.dataset.id;
         if (!shareId) {
-            alert('Missing record id.');
+            showNotification('Missing record id.');
             return;
         }
 
@@ -568,7 +598,7 @@ function initHistoryPage() {
 
         const trimmedName = newName.trim();
         if (!trimmedName) {
-            alert('File name cannot be empty.');
+            showNotification('File name cannot be empty.');
             return;
         }
 
@@ -590,7 +620,7 @@ function initHistoryPage() {
         console.log('rename response:', res.status, result);
 
         if (!res.ok) {
-            alert(result?.detail || 'Rename failed.');
+            showNotification(result?.detail || 'Rename failed.');
             return;
         }
 
@@ -605,7 +635,7 @@ function initHistoryPage() {
 
     const shareId = selected.dataset.id;
     if (!shareId) {
-        alert('Missing record id.');
+        showNotification('Missing record id.');
         return;
     }
 
@@ -624,7 +654,7 @@ function initHistoryPage() {
     console.log('resend response:', res.status, result);
 
     if (!res.ok) {
-        alert(result?.detail || 'Resend failed.');
+        showNotification(result?.detail || 'Resend failed.');
         return;
     }
 
@@ -647,8 +677,12 @@ function initHistoryPage() {
 
         filterBtns.forEach(btn => {
             btn.addEventListener('click', () => {
-                filterBtns.forEach(b => b.classList.remove('active'));
+                filterBtns.forEach(b => {
+                    b.classList.remove('active');
+                    b.setAttribute('aria-pressed', 'false');
+                });
                 btn.classList.add('active');
+                btn.setAttribute('aria-pressed', 'true');
 
                 const filter = btn.id.replace('filter', '');
                 document.querySelectorAll('.file-row').forEach(row => {

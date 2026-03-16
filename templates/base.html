@@ -5,11 +5,17 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>FileTransit</title>
-    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    <meta name="description" content="FileTransit — quick and secure file sharing with share codes, QR codes, and download links. Files expire in 10 minutes.">
+    <link rel="stylesheet" href="{% static 'css/style.css' %}?v=4">
 </head>
 <body>
+    <a href="#main-content" class="skip-link">Skip to main content</a>
+
+    <!-- Accessible notification container -->
+    <div class="notification-container" id="notificationContainer" aria-live="assertive" aria-atomic="true"></div>
+
     <!-- Top Navigation -->
-    <nav class="top-nav">
+    <nav class="top-nav" role="navigation" aria-label="Main navigation">
         <div class="nav-left">
             <a href="{% url 'transfer' %}" class="logo">FileTransit</a>
         </div>
@@ -23,11 +29,11 @@
     </nav>
 
     <!-- Main Content -->
-    <main class="main-content">
+    <main class="main-content" id="main-content">
         {% block content %}{% endblock %}
     </main>
 
     <script>const IS_AUTHENTICATED = {{ user.is_authenticated|yesno:"true,false" }};</script>
-    <script src="{% static 'js/app.js' %}?v=3"></script>
+    <script src="{% static 'js/app.js' %}?v=8"></script>
 </body>
 </html>

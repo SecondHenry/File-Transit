@@ -58,12 +58,13 @@ def history_api(request):
             "name": name,
             "size": file_content.size if file_content else 0,
             "created_at": s.created_at.isoformat(),
-            "type": ext,
+            "type": "Sent",
             "download_url": request.build_absolute_uri(
                 reverse("download_file", kwargs={"code": s.code})
             ),
             "is_available": is_available,
             "retention_until": file_content.retention_until.isoformat() if file_content and file_content.retention_until else None,
+            "file_content_id": file_content.id if file_content else None,
         })
 
     # ---------- Received records ----------
@@ -92,7 +93,11 @@ def history_api(request):
             "download_url": request.build_absolute_uri(
                 reverse("download_file", kwargs={"code": share.code})
             ) if share else "",
-            "is_available": False,
+            "is_available": (
+                file_content is not None
+                and file_content.retention_until is not None
+                and file_content.retention_until > timezone.now()
+            ),
             "retention_until": (
                 file_content.retention_until.isoformat()
                 if file_content and file_content.retention_until else None
@@ -187,6 +192,27 @@ def upload_file(request):
             {"status": "error", "message": "File size exceeds 32 MB limit."},
             status=400
         )
+
+    # Quota check: reject if upload would exceed 1 GB
+    QUOTA_BYTES = 1 * 1024 * 1024 * 1024  # 1 GB
+    user_file_ids = (
+        ShareItem.objects
+        .filter(owner=request.user)
+        .values_list("file_content_id", flat=True)
+        .distinct()
+    )
+    used_bytes = (
+        FileContent.objects
+        .filter(id__in=user_file_ids)
+        .aggregate(total=Sum("size"))
+    )["total"] or 0
+
+    if used_bytes + file_obj.size > QUOTA_BYTES:
+        return JsonResponse(
+            {"status": "error", "message": "quota_exceeded"},
+            status=403
+        )
+
     # 1. Calculate MD5
     file_md5 = calculate_md5(file_obj)
     file_obj.seek(0)
@@ -233,11 +259,13 @@ def download_file(request, code: str):
 
     share = ShareItem.objects.select_related("file_content").filter(code=code).first()
     if not share:
-        raise Http404("Invalid code")
+        messages.error(request, 'Invalid code. Please check and try again.')
+        return redirect('transfer')
 
     # Expiration check (if you have expire_at in your model)
     if getattr(share, "expire_at", None) and timezone.now() > share.expire_at:
-        raise Http404("Code expired")
+        messages.error(request, 'This share code has expired.')
+        return redirect('transfer')
 
     file_field = share.file_content.file_obj
     if not file_field or not os.path.exists(file_field.path):

@@ -10,11 +10,11 @@
 
             <!-- State 1: Initial - Upload prompt -->
             <div class="send-state" id="sendInitial">
-                <div class="upload-zone" id="uploadZone">
-                    <input type="file" id="fileInput" multiple hidden>
-                    <button class="upload-btn" id="uploadBtn">
-                        <span class="upload-icon">+</span>
-                        <span>Click or drag files here</span>
+                <div class="upload-zone" id="uploadZone" role="region" aria-label="File upload area">
+                    <input type="file" id="fileInput" multiple hidden aria-label="Select file to upload">
+                    <button class="upload-btn" id="uploadBtn" aria-label="Click to select a file for upload">
+                        <span class="upload-icon" aria-hidden="true">+</span>
+                        <span>Click or drag file here</span>
                     </button>
                 </div>
             </div>
@@ -24,8 +24,8 @@
                 <button class="btn btn-outline btn-sm" id="addMoreBtn">Change File</button>
                 <div class="file-list" id="fileList"></div>
                 <div class="auth-toggle">
-                    <button type="button" class="toggle-btn active" id="qrBtn">QR Code</button>
-                    <button type="button" class="toggle-btn" id="linkBtn">Link</button>
+                    <button type="button" class="toggle-btn active" id="qrBtn" aria-pressed="true">QR Code</button>
+                    <button type="button" class="toggle-btn" id="linkBtn" aria-pressed="false">Link</button>
                 </div>
                 <button class="btn btn-primary btn-full" id="sendBtn">Send</button>
             </div>
@@ -33,20 +33,20 @@
             <!-- State 3: File transferred -->
             <div class="send-state hidden" id="sendTransferred">
                 <div class="transfer-info-bar">
-                    <button class="btn btn-outline btn-sm" id="backBtn">&larr; Back</button>
-                    <span class="time-remaining" id="timeRemaining">Expires in 10:00</span>
+                    <button class="btn btn-outline btn-sm" id="backBtn" aria-label="Go back to upload">&larr; Back</button>
+                    <span class="time-remaining" id="timeRemaining" aria-live="polite">Expires in 10:00</span>
                 </div>
                 <div class="share-code-display">
                     <span class="share-label">Share Code</span>
                     <span class="share-code" id="shareCode">------</span>
                 </div>
                 <div class="auth-toggle">
-                    <button type="button" class="toggle-btn active" id="qrBtnResult">QR Code</button>
-                    <button type="button" class="toggle-btn" id="linkBtnResult">Link</button>
+                    <button type="button" class="toggle-btn active" id="qrBtnResult" aria-pressed="true">QR Code</button>
+                    <button type="button" class="toggle-btn" id="linkBtnResult" aria-pressed="false">Link</button>
                 </div>
                 <div class="share-visual" id="shareVisual">
                     <div id="qrDisplay">
-                        <img id="qrImage" alt="QR Code">
+                        <img id="qrImage" alt="QR code for file download">
                         <p>Scan to download</p>
                     </div>
                     <div id="linkDisplay" class="hidden">
@@ -61,7 +61,8 @@
         <section class="card receive-area">
             <h2 class="card-title">Receive</h2>
             <div class="receive-input-group">
-                <input type="text" class="input-code" id="receiveCode" placeholder="Enter share code" maxlength="6">
+                <label for="receiveCode" class="sr-only">Enter share code</label>
+                <input type="text" class="input-code" id="receiveCode" placeholder="Enter share code" maxlength="6" aria-label="Enter share code">
                 <button class="btn btn-primary" id="receiveBtn">Download</button>
             </div>
         </section>
@@ -71,7 +72,7 @@
     <div class="transfer-column">
         <section class="card auth-area" id="authArea">
             {% if messages %}
-            <div class="auth-messages">
+            <div class="auth-messages" role="alert" aria-live="assertive">
                 {% for message in messages %}
                 <div class="auth-msg auth-msg-{{ message.tags }}">{{ message }}</div>
                 {% endfor %}
@@ -104,8 +105,8 @@
                 <h2 class="card-title">Log in & Sign up</h2>
 
                 <div class="auth-toggle">
-                    <button type="button" class="toggle-btn active" id="loginToggle">Log in</button>
-                    <button type="button" class="toggle-btn" id="signupToggle">Sign up</button>
+                    <button type="button" class="toggle-btn active" id="loginToggle" aria-pressed="true">Log in</button>
+                    <button type="button" class="toggle-btn" id="signupToggle" aria-pressed="false">Sign up</button>
                 </div>
 
                 <!-- Login Form -->
@@ -115,8 +116,8 @@
 
                         <input type="hidden" name="next" value="{{ request.GET.next }}">
 
-                        <input type="text" class="input-field" placeholder="Username" name="username" required>
-                        <input type="password" class="input-field" placeholder="Password" name="password" required>
+                        <input type="text" class="input-field" placeholder="Username" name="username" required aria-label="Username">
+                        <input type="password" class="input-field" placeholder="Password" name="password" required aria-label="Password">
                     </div>
                     <button type="submit" class="btn btn-primary btn-full">Log in</button>
                 </form>
@@ -128,9 +129,9 @@
 
                         <input type="hidden" name="next" value="{{ request.GET.next }}">
 
-                        <input type="text" class="input-field" placeholder="Username" name="username" required>
-                        <input type="password" class="input-field" placeholder="Password" name="password" required>
-                        <input type="password" class="input-field" placeholder="Confirm Password" name="confirm_password" required>
+                        <input type="text" class="input-field" placeholder="Username" name="username" required aria-label="Username">
+                        <input type="password" class="input-field" placeholder="Password" name="password" required aria-label="Password">
+                        <input type="password" class="input-field" placeholder="Confirm Password" name="confirm_password" required aria-label="Confirm Password">
                     </div>
                     <button type="submit" class="btn btn-primary btn-full">Sign up</button>
                 </form>
