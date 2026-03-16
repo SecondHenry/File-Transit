@@ -5,7 +5,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>FileTransit</title>
-    <link rel="stylesheet" href="{% static 'css/style.css' %}?v=2">
+    <meta name="description" content="FileTransit — quick and secure file sharing with share codes, QR codes, and download links. Files expire in 10 minutes.">
+    <link rel="stylesheet" href="{% static 'css/style.css' %}?v=4">
 </head>
 <body>
     <a href="#main-content" class="skip-link">Skip to main content</a>
@@ -33,6 +34,6 @@
     </main>
 
     <script>const IS_AUTHENTICATED = {{ user.is_authenticated|yesno:"true,false" }};</script>
-    <script src="{% static 'js/app.js' %}?v=6"></script>
+    <script src="{% static 'js/app.js' %}?v=7"></script>
 </body>
 </html>
