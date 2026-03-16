@@ -192,6 +192,27 @@ def upload_file(request):
             {"status": "error", "message": "File size exceeds 32 MB limit."},
             status=400
         )
+
+    # Quota check: reject if upload would exceed 1 GB
+    QUOTA_BYTES = 1 * 1024 * 1024 * 1024  # 1 GB
+    user_file_ids = (
+        ShareItem.objects
+        .filter(owner=request.user)
+        .values_list("file_content_id", flat=True)
+        .distinct()
+    )
+    used_bytes = (
+        FileContent.objects
+        .filter(id__in=user_file_ids)
+        .aggregate(total=Sum("size"))
+    )["total"] or 0
+
+    if used_bytes + file_obj.size > QUOTA_BYTES:
+        return JsonResponse(
+            {"status": "error", "message": "quota_exceeded"},
+            status=403
+        )
+
     # 1. Calculate MD5
     file_md5 = calculate_md5(file_obj)
     file_obj.seek(0)
