@@ -76,10 +76,10 @@ function initTransferPage() {
 
     // Upload button click
     uploadBtn.addEventListener('click', () => {
-        if (requireAuth('Please log in to upload files.')) fileInput.click();
+        if (requireAuth('Please log in to upload.')) fileInput.click();
     });
     addMoreBtn.addEventListener('click', () => {
-        if (requireAuth('Please log in to upload files.')) fileInput.click();
+        if (requireAuth('Please log in to upload.')) fileInput.click();
     });
 
     // File input change
@@ -101,7 +101,7 @@ function initTransferPage() {
     uploadZone.addEventListener('drop', (e) => {
         e.preventDefault();
         uploadZone.classList.remove('drag-over');
-        if (!requireAuth('Please log in to upload files.')) return;
+        if (!requireAuth('Please log in to upload.')) return;
         addFiles(Array.from(e.dataTransfer.files));
     });
 
@@ -153,7 +153,7 @@ function initTransferPage() {
 
     // Send button
     sendBtn.addEventListener('click', async () => {
-        if (!requireAuth('Please log in to send files.')) return;
+        if (!requireAuth('Please log in to send.')) return;
         if (uploadedFiles.length === 0) return;
 
         sendBtn.disabled = true;
