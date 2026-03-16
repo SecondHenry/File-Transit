@@ -170,15 +170,11 @@ function initTransferPage() {
 
             const data = await res.json().catch(() => null);
             if (!res.ok) {
-                showNotification(data?.message || 'Upload failed. Please try again.');
-                return;
-            }
-
-            console.log(data.expire_at);
-            console.log('upload response:', data);
-
-            if (!res.ok) {
-                showNotification(data?.message || 'Upload failed. Please try again.');
+                if (data?.message === 'quota_exceeded') {
+                    alert('Your storage usage has reached the 1 GB limit. Please contact the administrator to purchase a prime plan.');
+                } else {
+                    showNotification(data?.message || 'Upload failed. Please try again.');
+                }
                 return;
             }
 
