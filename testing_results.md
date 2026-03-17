@@ -35,26 +35,27 @@ The testing process involved:
 |-------|----------------|----------------|---------------|-------|
 | T1 | User Registration | A new user account can be created successfully | Account created successfully | PASS |
 | T2 | User Login | Registered user can log into the system | User logged into the system | PASS |
-| T3 | File Upload | User can upload a file and receive a transfer code | File uploaded and transfer code generated | PASS |
-| T4 | File Download | File can be downloaded using the transfer code | File downloaded successfully | PASS |
-| T5 | Transfer History | Uploaded files appear in the user's history page | Uploaded files displayed correctly | PASS |
+| T3 | File Upload | User can upload a file successfully | File uploaded successfully | PASS |
+| T4 | Share Code Generation | System generates a valid share code and QR code after upload | Share code and QR code displayed successfully | PASS |
+| T5 | File Download | File can be downloaded using the transfer code | File downloaded successfully | PASS |
+| T6 | Transfer History | Uploaded and downloaded files appear in the user's history page | Files displayed correctly in history | PASS |
+| T7 | Invalid Share Code | System shows an error message for an invalid code | Error message displayed successfully | PASS |
+| T8 | User Logout | User can log out and return to the login page | Logout successful and login page displayed | PASS |
 
 ---
 
 ## 4. Test Results
 
-All core features of the FileTransit system were tested successfully. The system allowed users to register and log into the platform, upload files, generate transfer codes, and download files using the provided codes.
+The main features of the FileTransit system were tested successfully. The system allowed users to register and log into the platform, upload files, generate share codes and QR codes, and download files using the provided transfer code.
 
-The transfer history feature also functioned correctly, allowing users to view previously uploaded files.
+The transfer history feature also worked correctly, showing both sent and received files in the history page. In addition, the system handled invalid share codes properly by displaying an error message, and the logout function successfully returned the user to the login page.
 
-No major errors were encountered during functional testing. The results confirm that the main functionality of the application works as intended.
+Overall, the functional testing results show that the main features of the application work as intended and meet the core requirements of the system.
 
 ---
 
 ## 5. Future Testing Improvements
 
-The functional testing confirmed that the core features of the FileTransit system operate correctly. Users are able to register and log in to the system, upload files, share them using a transfer code, and download files using the provided code.
+Although the main functionality was tested successfully, further testing could be carried out in future versions of the project. For example, additional tests could be performed for large file uploads, expired share codes, unsupported file types, and multiple users accessing the system at the same time.
 
-The transfer history feature also works as expected, allowing users to review their previously uploaded files.
-
-No critical functional issues were encountered during testing. Overall, the implemented system satisfies the functional requirements described in the design specification and provides a simple and effective method for file sharing through a web interface.
+It would also be useful to add more automated tests in Django to improve test coverage and reduce the need for repeated manual testing during future development.
