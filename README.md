@@ -70,41 +70,53 @@ The application includes significant client-side interactivity implemented using
 
 ## Project Structure
 
+```
 File-Transit/
+├── FileTransit/                # Django project configuration
+│   ├── __init__.py
+│   ├── settings.py             # Project settings (database, apps, middleware)
+│   ├── urls.py                 # Root URL routing
+│   ├── views.py                # Shared views (e.g. cookie policy)
+│   ├── asgi.py
+│   └── wsgi.py
 │
-├── FileTransit/          # Django Project configuration（settings, urls,etc.）
-│   ├── settings.py
-│   ├── urls.py
-│   ├── views.py
-│   └── ...
+├── manager/                    # Core app — file upload, sharing, history
+│   ├── models.py               # ShareItem, FileContent, DownloadRecord
+│   ├── views.py                # API endpoints (upload, download, history CRUD)
+│   ├── urls.py                 # /api/ URL routing
+│   ├── utils.py                # Helper functions (code generation, cleanup)
+│   ├── admin.py
+│   ├── apps.py
+│   ├── tests.py
+│   └── migrations/
 │
-├── manager/              # Core business logic (files, history, etc.)
+├── users/                      # Auth app — login, logout, registration
 │   ├── models.py
-│   ├── views.py
-│   ├── urls.py
-│   ├── utils.py
-│   └── ...
+│   ├── views.py                # Authentication views
+│   ├── urls.py                 # /users/ URL routing
+│   ├── admin.py
+│   ├── apps.py
+│   ├── tests.py
+│   └── migrations/
 │
-├── users/                # User related functions (authentication, etc.)
-│   ├── models.py
-│   ├── views.py
-│   └── ...
+├── templates/                  # Django templates (server-side rendered)
+│   ├── base.html               # Master layout (nav, notifications, meta)
+│   ├── transfer.html           # File upload / download interface
+│   ├── history.html            # File explorer with actions
+│   └── help.html               # Documentation / FAQ
 │
-├── templates/            # Front-end template
-│   ├── base.html
-│   ├── transfer.html
-│   ├── history.html
-│   └── help.html
+├── static/                     # Static assets
+│   ├── css/
+│   │   └── style.css           # All styles + dark mode + responsive
+│   └── js/
+│       └── app.js              # Client-side logic (upload, AJAX, UI)
 │
-├── static/               # Static resources
-│   ├── css/style.css
-│   └── js/app.js
-│
-├── files/uploads/        # Upload file storage directory
-│
-├── db.sqlite3            # Local database (development environment)
-├── manage.py
+├── files/uploads/              # Uploaded file storage (content-addressed)
+├── db.sqlite3                  # SQLite database (development)
+├── manage.py                   # Django management script
 └── README.md
+```
+
 ---
 
 ## Installation
