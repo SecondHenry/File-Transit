@@ -32,6 +32,11 @@ class ShareItem(models.Model):
     expire_at = models.DateTimeField(default=default_expire_at)
     created_at = models.DateTimeField(auto_now_add=True)
 
+class DownloadRecord(models.Model):
+    owner = models.ForeignKey(User, on_delete=models.CASCADE, related_name="download_records")
+    share_item = models.ForeignKey(ShareItem, on_delete=models.CASCADE, related_name="download_records")
+    downloaded_at = models.DateTimeField(auto_now_add=True)
+
     def __str__(self):
         return f"{self.code} - {self.original_name}"
 

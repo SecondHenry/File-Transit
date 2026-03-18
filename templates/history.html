@@ -9,9 +9,9 @@
             <div class="filter-group">
                 <label class="filter-label">Filter</label>
                 <div class="filter-toggle">
-                    <button class="toggle-btn active" id="filterAll">All</button>
-                    <button class="toggle-btn" id="filterSent">Sent</button>
-                    <button class="toggle-btn" id="filterReceived">Received</button>
+                    <button class="toggle-btn active" id="filterAll" aria-pressed="true">All</button>
+                    <button class="toggle-btn" id="filterSent" aria-pressed="false">Sent</button>
+                    <button class="toggle-btn" id="filterReceived" aria-pressed="false">Received</button>
                 </div>
             </div>
             <label class="filter-label">Actions</label>
@@ -32,7 +32,6 @@
                 <table class="file-table">
                     <thead>
                         <tr>
-                            <th id="selectAll"></th>
                             <th>File</th>
                             <th>Size</th>
                             <th>Date</th>

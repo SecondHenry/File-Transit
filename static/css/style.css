@@ -6,13 +6,13 @@
 }
 
 :root {
-    --primary: #4a6cf7;
-    --primary-hover: #3a5ce5;
+    --primary: #4361e6;
+    --primary-hover: #3551d4;
     --danger: #e74c3c;
     --bg: #f5f6fa;
     --card-bg: #ffffff;
     --text: #2c3e50;
-    --text-light: #7f8c8d;
+    --text-light: #5a6b6d;
     --border: #e0e0e0;
     --radius: 8px;
     --shadow: 0 2px 8px rgba(0,0,0,0.08);
@@ -24,6 +24,53 @@ body {
     color: var(--text);
     line-height: 1.6;
     min-height: 100vh;
+}
+
+/* ========== Accessibility: Skip Navigation ========== */
+.skip-link {
+    position: absolute;
+    top: -100%;
+    left: 16px;
+    background: var(--primary);
+    color: #fff;
+    padding: 8px 16px;
+    border-radius: var(--radius);
+    z-index: 200;
+    font-size: 14px;
+    text-decoration: none;
+}
+
+.skip-link:focus {
+    top: 8px;
+}
+
+/* ========== Accessibility: Focus Indicators ========== */
+.btn:focus-visible,
+.nav-btn:focus-visible,
+.toggle-btn:focus-visible,
+.upload-btn:focus-visible,
+.file-item-remove:focus-visible,
+.logo:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+}
+
+.file-row:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: -2px;
+}
+
+/* ========== Accessibility: Screen Reader Only ========== */
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
 }
 
 /* ========== Top Navigation ========== */
@@ -341,12 +388,13 @@ body {
     font-size: 16px;
     letter-spacing: 4px;
     text-align: center;
-    outline: none;
     transition: border-color 0.2s;
 }
 
-.input-code:focus {
+.input-code:focus-visible {
     border-color: var(--primary);
+    outline: 2px solid var(--primary);
+    outline-offset: 1px;
 }
 
 /* ========== Auth Messages ========== */
@@ -421,12 +469,13 @@ body {
     border: 1px solid var(--border);
     border-radius: var(--radius);
     font-size: 14px;
-    outline: none;
     transition: border-color 0.2s;
 }
 
-.input-field:focus {
+.input-field:focus-visible {
     border-color: var(--primary);
+    outline: 2px solid var(--primary);
+    outline-offset: 1px;
 }
 
 .hidden {
@@ -606,13 +655,13 @@ body {
 }
 
 .badge-sent {
-    background: rgba(74, 108, 247, 0.1);
-    color: var(--primary);
+    background: rgba(74, 108, 247, 0.15);
+    color: #2d4ec2;
 }
 
 .badge-received {
-    background: rgba(46, 204, 113, 0.1);
-    color: #27ae60;
+    background: rgba(46, 204, 113, 0.15);
+    color: #1a7a3e;
 }
 
 /* ========== Help Page ========== */
@@ -662,6 +711,48 @@ body {
 
 .faq-item p {
     margin: 0;
+}
+
+/* ========== Accessible Notification Toast ========== */
+.notification-container {
+    position: fixed;
+    top: 64px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 200;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    pointer-events: none;
+}
+
+.notification-toast {
+    padding: 10px 20px;
+    border-radius: var(--radius);
+    font-size: 14px;
+    font-weight: 500;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    pointer-events: auto;
+    animation: fadeInOut 5s ease forwards;
+}
+
+.notification-toast.error {
+    background: #fdecea;
+    color: #b71c1c;
+    border: 1px solid #f5c6cb;
+}
+
+.notification-toast.success {
+    background: #e8f5e9;
+    color: #1b5e20;
+    border: 1px solid #c8e6c9;
+}
+
+@keyframes fadeInOut {
+    0% { opacity: 0; transform: translateY(-10px); }
+    10% { opacity: 1; transform: translateY(0); }
+    80% { opacity: 1; }
+    100% { opacity: 0; }
 }
 
 /* ========== Responsive ========== */
@@ -756,5 +847,82 @@ body {
     .status.expired {
         color: #95a5a6;
         font-weight: 600;
+    }
+}
+
+/* ========== Dark Mode ========== */
+@media (prefers-color-scheme: dark) {
+    :root {
+        --primary: #6b8aff;
+        --primary-hover: #5a79ee;
+        --danger: #ff6b6b;
+        --bg: #121220;
+        --card-bg: #1a1a2e;
+        --text: #e0e0e0;
+        --text-light: #a0a8b4;
+        --border: #2a2a4a;
+        --shadow: 0 2px 8px rgba(0,0,0,0.3);
+    }
+
+    body {
+        color-scheme: dark;
+    }
+
+    .upload-zone.drag-over {
+        background: rgba(107, 138, 255, 0.08);
+    }
+
+    .upload-btn:hover .upload-icon {
+        background: rgba(107, 138, 255, 0.15);
+    }
+
+    .file-row.selected {
+        background: rgba(107, 138, 255, 0.1);
+    }
+
+    .toggle-btn.active {
+        box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+    }
+
+    .badge-sent {
+        background: rgba(107, 138, 255, 0.2);
+        color: #8da4ff;
+    }
+
+    .badge-received {
+        background: rgba(46, 204, 113, 0.2);
+        color: #5fe09a;
+    }
+
+    .auth-msg-success {
+        background: rgba(46, 204, 113, 0.15);
+        color: #5fe09a;
+    }
+
+    .auth-msg-error {
+        background: rgba(255, 107, 107, 0.15);
+        color: #ff8a8a;
+    }
+
+    .notification-toast.error {
+        background: #2d1a1a;
+        color: #ff8a8a;
+        border-color: #4a2020;
+    }
+
+    .notification-toast.success {
+        background: #1a2d1a;
+        color: #5fe09a;
+        border-color: #204a20;
+    }
+
+    .input-field,
+    .input-code {
+        background: #16163a;
+        color: var(--text);
+    }
+
+    .status.available {
+        color: #5fe09a;
     }
 }
