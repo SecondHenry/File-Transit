@@ -415,7 +415,6 @@ function initTransferPage() {
 // ========== History Page Logic ==========
 function initHistoryPage() {
     const tableBody = document.getElementById('fileTableBody');
-    const selectAll = document.getElementById('selectAll');
     const actionBtns = document.querySelectorAll('#resendBtn, #renameBtn, #downloadBtn, #deleteBtn');
 
     if (!IS_AUTHENTICATED) {
@@ -441,7 +440,6 @@ function initHistoryPage() {
                 tr.dataset.type = item.type;
                 tr.setAttribute('tabindex', '0');
                 tr.innerHTML = `
-                    <td><input type="checkbox" class="file-check" aria-label="Select file ${item.name}"></td>
                     <td class="file-name">${item.name}</td>
                     <td>${formatSize(item.size)}</td>
                     <td>${new Date(item.created_at).toLocaleDateString()}</td>
@@ -458,27 +456,14 @@ function initHistoryPage() {
         const rows = document.querySelectorAll('.file-row');
 
         function selectOnly(targetRow) {
-            rows.forEach(r => {
-                const cb = r.querySelector('.file-check');
-                if (r === targetRow) {
-                    cb.checked = !cb.checked;
-                } else {
-                    cb.checked = false;
-                }
-                r.classList.toggle('selected', cb.checked);
-            });
-            selectAll.checked = false;
+            const wasSelected = targetRow.classList.contains('selected');
+            rows.forEach(r => r.classList.remove('selected'));
+            if (!wasSelected) targetRow.classList.add('selected');
             updateActionButtons();
         }
 
         rows.forEach(row => {
-            const checkbox = row.querySelector('.file-check');
-            row.addEventListener('click', (e) => {
-                if (e.target.type === 'checkbox') {
-                    e.preventDefault();
-                }
-                selectOnly(row);
-            });
+            row.addEventListener('click', () => selectOnly(row));
             row.addEventListener('keydown', (e) => {
                 if (e.key === 'Enter' || e.key === ' ') {
                     e.preventDefault();
@@ -489,8 +474,8 @@ function initHistoryPage() {
     }
 
     function updateActionButtons() {
-        const checked = document.querySelectorAll('.file-check:checked').length;
-        actionBtns.forEach(btn => btn.disabled = checked === 0);
+        const hasSelected = !!document.querySelector('.file-row.selected');
+        actionBtns.forEach(btn => btn.disabled = !hasSelected);
     }
 
     // Download selected files
@@ -691,14 +676,11 @@ function initHistoryPage() {
                     } else {
                         row.style.display = row.dataset.type === filter ? '' : 'none';
                     }
-                    // Uncheck hidden rows
+                    // Deselect hidden rows
                     if (row.style.display === 'none') {
-                        const cb = row.querySelector('.file-check');
-                        cb.checked = false;
                         row.classList.remove('selected');
                     }
                 });
-                selectAll.checked = false;
                 updateActionButtons();
             });
         });
